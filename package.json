@@ -1,0 +1,30 @@
+{
+  "name": "socialapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "cross-env NODE_ENV=production tsc",
+    "production": "cross-env NODE_ENV=production pm2 start ./dist/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^26.1.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.7.3",
+    "pm2": "^7.0.3",
+    "zod": "^4.4.3"
+  }
+}
