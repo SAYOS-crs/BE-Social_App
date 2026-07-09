@@ -9,32 +9,28 @@ export class ApplicationErrorExption extends Error {
     this.name = this.constructor.name;
   }
 }
-
+// _______________________
 export class BadRequstExption extends ApplicationErrorExption {
-  constructor(
-    message: string,
-    StatusCode: number = 400,
-    cause?: any,
-    options?: ErrorOptions,
-  ) {
-    super(message, (StatusCode = 400), cause, options);
+  constructor(message: string, cause?: any, options?: ErrorOptions) {
+    super(message, 400, cause, options);
     this.name = this.constructor.name;
   }
 }
 export class ConflictExption extends ApplicationErrorExption {
-  constructor(message: string, cause?: string, options?: ErrorOptions) {
+  constructor(message: string, cause?: unknown, options?: ErrorOptions) {
     super(message, 409, cause, options);
+
     this.name = this.constructor.name;
   }
 }
 export class NotFoundExption extends ApplicationErrorExption {
-  constructor(message: string, cause?: string, options?: ErrorOptions) {
+  constructor(message: string, cause?: unknown, options?: ErrorOptions) {
     super(message, 404, cause, options);
     this.name = this.constructor.name;
   }
 }
 export class UnAuthroizedExption extends ApplicationErrorExption {
-  constructor(message: string, cause?: string, options?: ErrorOptions) {
+  constructor(message: string, cause?: unknown, options?: ErrorOptions) {
     super(message, 401, cause, options);
     this.name = this.constructor.name;
   }
