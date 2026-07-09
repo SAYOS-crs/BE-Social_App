@@ -12,7 +12,11 @@ class AuthService {
 
   Login = (req: Request, res: Response, next: NextFunction): Response => {
     // throw new ConflictExption("error message", { cause: "lol" });
-    return SuccessResponse({ res, message: "good" });
+    return SuccessResponse<I_AuthLoginDTO>({
+      res,
+      message: "good",
+      data: req.body,
+    });
   };
 }
 
