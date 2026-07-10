@@ -6,16 +6,25 @@ import {
   SuccessResponse,
 } from "../../Utils";
 import { I_AuthLoginDTO } from "./auth.dto";
+import UserModel from "../../DB/models/User.model";
 
 class AuthService {
   constructor() {}
 
-  Login = (req: Request, res: Response, next: NextFunction): Response => {
-    // throw new ConflictExption("error message", { cause: "lol" });
-    return SuccessResponse<I_AuthLoginDTO>({
+  Login = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response> => {
+    const data = req.body;
+    const result = await UserModel.insertOne(data);
+    // console.log(data);
+
+    console.log(result);
+    return SuccessResponse<any>({
       res,
       message: "good",
-      data: req.body,
+      data: result,
     });
   };
 }

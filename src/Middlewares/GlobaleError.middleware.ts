@@ -11,7 +11,7 @@ const GlobaleErrorExption = (
   res: Response,
   next: NextFunction,
 ) => {
-  res.status(error.StatusCode).json({
+  res.status(error.StatusCode || 500).json({
     message: error.message,
     statuscode: error.StatusCode,
     cause: error?.cause,
