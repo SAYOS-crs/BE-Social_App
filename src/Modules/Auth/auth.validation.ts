@@ -1,8 +1,7 @@
 import * as z from "zod";
-import { IUser } from "../../DB/models/User.model";
 import { Enums } from "../../Utils";
 
-export const loginschema = {
+export const SignupSchema = {
   body: z
     .strictObject({
       username: z.string(),

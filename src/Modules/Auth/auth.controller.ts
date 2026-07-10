@@ -1,10 +1,10 @@
 import { Router } from "express";
 import authService from "./auth.service";
 import Validation from "../../Middlewares/Validation.middleware";
-import { loginschema } from "./auth.validation";
+import { SignupSchema } from "./auth.validation";
 
 const router: Router = Router();
 
-router.post("/login", Validation(loginschema), authService.Login);
+router.post("/signup", Validation(SignupSchema), authService.SignUp);
 
 export default router;
