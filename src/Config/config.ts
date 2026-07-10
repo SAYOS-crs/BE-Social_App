@@ -8,6 +8,10 @@ config({
       : "./dist/Config/prod.env",
   ),
 });
-
+const GetENV = (key: string) => {
+  if (!key) return undefined;
+  return process.env[key];
+};
 // --------------- env attriputes
-export const PORT = process.env["PORT"];
+export const PORT = GetENV("PORT");
+export const DB_URI = GetENV("DB_URI") || "";
