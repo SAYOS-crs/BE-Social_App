@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 
 interface IError extends Error {
   StatusCode: number;
-  cause: string;
+  cause?: string;
 }
 
 const GlobaleErrorExption = (
@@ -10,12 +10,13 @@ const GlobaleErrorExption = (
   req: Request,
   res: Response,
   next: NextFunction,
-): Response => {
-  return res.status(error.StatusCode).json({
-    name: error.name,
+) => {
+  res.status(error.StatusCode).json({
     message: error.message,
+    statuscode: error.StatusCode,
     cause: error?.cause,
     stack: error?.stack,
   });
 };
+
 export default GlobaleErrorExption;
