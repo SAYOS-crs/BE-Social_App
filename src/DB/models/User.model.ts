@@ -20,7 +20,7 @@ export interface IUser {
   Password: string;
   confirmPassword: string;
   // phone + address
-  phone: number;
+  phone: string;
   address: string;
   // photos
   UserImge?: string;
@@ -65,7 +65,7 @@ const UserSchema = new Schema<IUser>(
     },
     //phone + address
     phone: {
-      type: Number,
+      type: String,
     },
     address: {
       type: String,
@@ -112,3 +112,4 @@ UserSchema.virtual("username")
 
 const UserModel = mongoose.model<IUser>("User", UserSchema);
 export default UserModel;
+export type HUserDocument = mongoose.HydratedDocument<IUser>;

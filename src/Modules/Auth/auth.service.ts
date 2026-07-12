@@ -4,9 +4,11 @@ import {
   ConflictExption,
   SuccessResponse,
 } from "../../Utils";
-import UserModel from "../../DB/models/User.model";
+import UserRepository from "../../DB/Repository/User.Repository";
+import { I_AuthSignUpDTO } from "./auth.dto";
 
 class AuthService {
+  private _UserRepository = new UserRepository();
   constructor() {}
 
   SignUp = async (
@@ -14,10 +16,23 @@ class AuthService {
     res: Response,
     next: NextFunction,
   ): Promise<Response> => {
-    const data = req.body;
-    const result = await UserModel.insertOne(data);
-    // console.log(data);
-    console.log(result);
+    const data: I_AuthSignUpDTO = req.body;
+    // checking if use exists
+    const isUserExist = await this._UserRepository.exists({
+      Email: data.Email,
+    });
+    if (isUserExist) {
+      throw new ConflictExption("Email already Exist");
+    }
+    // -------------------------------------
+    // insert User
+    const result = await this._UserRepository.insertOne({ data });
+    // safety check
+    if (!result)
+      throw new BadRequstExption(
+        "somthing Went Worng when trying to insert the User",
+        { cause: result },
+      );
     return SuccessResponse<any>({
       res,
       message: "good",

@@ -1,4 +1,4 @@
 import { z } from "zod";
-import { loginschema } from "./auth.validation";
+import { SignupSchema } from "./auth.validation";
 
-export type I_AuthLoginDTO = z.infer<typeof loginschema.body>;
+export type I_AuthSignUpDTO = z.infer<typeof SignupSchema.body>;

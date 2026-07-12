@@ -8,7 +8,7 @@ export const SignupSchema = {
       Email: z.string().max(19, "max length is 19").min(9, "min length in 9"),
       Password: z.string().max(20, "max password length is 20"),
       confirmPassword: z.string(),
-      phone: z.string().optional(),
+      phone: z.string(),
       address: z.string(),
       Gender: z.enum(Object.values(Enums.Gender)),
       // Rolle: z.enum(Object.values(Enums.Rolle)).optional(),
