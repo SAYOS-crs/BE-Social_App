@@ -7,6 +7,9 @@ import {
 import UserRepository from "../../DB/Repository/User.Repository";
 import { I_AuthSignUpDTO } from "./auth.dto";
 import hashingService from "../../Utils/Security/hashing.service";
+import EncryptionService, {
+  CreateSecretKey,
+} from "../../Utils/Security/Encryption.service";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -25,6 +28,7 @@ class AuthService {
       phone,
       username,
     }: I_AuthSignUpDTO = req.body;
+
     // checking if use exists
     const isUserExist = await this._UserRepository.exists({
       Email,
@@ -34,14 +38,13 @@ class AuthService {
     }
     // -------------------------------------
     // insert User
-
     const result = await this._UserRepository.insertOne({
       data: {
         Email,
         Gender,
         Password: await hashingService.Hash(Password),
         address,
-        phone,
+        phone: await EncryptionService.Encrypt(phone),
         username,
       },
     });
