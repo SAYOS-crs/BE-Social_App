@@ -15,3 +15,4 @@ const GetENV = (key: string) => {
 // --------------- env attriputes
 export const PORT = GetENV("PORT");
 export const DB_URI = GetENV("DB_URI") || "";
+export const SULT = Number(GetENV("SULT"));

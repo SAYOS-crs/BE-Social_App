@@ -6,6 +6,7 @@ import {
 } from "../../Utils";
 import UserRepository from "../../DB/Repository/User.Repository";
 import { I_AuthSignUpDTO } from "./auth.dto";
+import hashingService from "../../Utils/Security/hashing.service";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -16,21 +17,39 @@ class AuthService {
     res: Response,
     next: NextFunction,
   ): Promise<Response> => {
-    const data: I_AuthSignUpDTO = req.body;
+    const {
+      Email,
+      Gender,
+      Password,
+      address,
+      phone,
+      username,
+    }: I_AuthSignUpDTO = req.body;
     // checking if use exists
     const isUserExist = await this._UserRepository.exists({
-      Email: data.Email,
+      Email,
     });
     if (isUserExist) {
       throw new ConflictExption("Email already Exist");
     }
     // -------------------------------------
     // insert User
-    const result = await this._UserRepository.insertOne({ data });
+
+    const result = await this._UserRepository.insertOne({
+      data: {
+        Email,
+        Gender,
+        Password: await hashingService.Hash(Password),
+        address,
+        phone,
+        username,
+      },
+    });
+
     // safety check
     if (!result)
       throw new BadRequstExption(
-        "somthing Went Worng when trying to insert the User",
+        "something Went Wrong when trying to insert the User",
         { cause: result },
       );
     return SuccessResponse<any>({

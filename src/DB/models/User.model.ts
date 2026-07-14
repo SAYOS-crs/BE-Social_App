@@ -18,12 +18,12 @@ export interface IUser {
   confirmEmail?: Date;
   // password
   Password: string;
-  confirmPassword: string;
+  confirmPassword?: string;
   // phone + address
   phone: string;
   address: string;
   // photos
-  UserImge?: string;
+  UserImage?: string;
   CoverImage?: string;
 
   // role + gender
@@ -61,7 +61,6 @@ const UserSchema = new Schema<IUser>(
     },
     confirmPassword: {
       type: String,
-      required: true,
     },
     //phone + address
     phone: {
@@ -72,7 +71,7 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     // images
-    UserImge: String,
+    UserImage: String,
     CoverImage: String,
     //Enums
     Gender: {
