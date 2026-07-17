@@ -18,3 +18,4 @@ export const DB_URI = GetENV("DB_URI") || "";
 export const SULT = Number(GetENV("SULT"));
 export const IV_LENGTH = Number(GetENV("IV_LENGTH"));
 export const SECRET_KEY = GetENV("SECRET_KEY");
+export const REDIS_URL = GetENV("REDIS_URL") || "";

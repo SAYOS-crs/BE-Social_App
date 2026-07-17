@@ -2,7 +2,7 @@ import express, { Express } from "express";
 import { PORT } from "./Config/config";
 import { AuthRouter } from "./Modules";
 import { GlobaleErrorExption } from "./Middlewares";
-import ConnectDB from "./DB/Connection";
+import { ConnectMongooseDB, ConnectRedisDB } from "./DB/Connection";
 import { NotFoundExption } from "./Utils";
 import chalk from "chalk";
 
@@ -11,9 +11,9 @@ export default function bootstrap() {
   // globale middlewares
   app.use(express.json());
 
-  // connections :
-  ConnectDB();
-
+  //DB connections :
+  ConnectMongooseDB();
+  ConnectRedisDB();
   // routers :
   app.use("/api/v1/auth", AuthRouter);
 
