@@ -19,3 +19,5 @@ export const SULT = Number(GetENV("SULT"));
 export const IV_LENGTH = Number(GetENV("IV_LENGTH"));
 export const SECRET_KEY = GetENV("SECRET_KEY");
 export const REDIS_URL = GetENV("REDIS_URL") || "";
+export const EMAIL = GetENV("EMAIL") || "";
+export const PASS = GetENV("PASS") || "";

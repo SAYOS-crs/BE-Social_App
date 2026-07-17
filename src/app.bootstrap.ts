@@ -5,8 +5,10 @@ import { GlobaleErrorExption } from "./Middlewares";
 import { ConnectMongooseDB, ConnectRedisDB } from "./DB/Connection";
 import { NotFoundExption } from "./Utils";
 import chalk from "chalk";
+import SendOTP from "./Utils/Email/Email.controler";
+import { EmailType } from "./Utils/Email/Email.templet";
 
-export default function bootstrap() {
+export default async function bootstrap() {
   const app: Express = express();
   // globale middlewares
   app.use(express.json());
@@ -14,6 +16,10 @@ export default function bootstrap() {
   //DB connections :
   ConnectMongooseDB();
   ConnectRedisDB();
+  SendOTP({
+    Email: "eslam.sayos.crm.ki123@gmail.com",
+    EmailType: EmailType.ConfirmEmail,
+  });
   // routers :
   app.use("/api/v1/auth", AuthRouter);
 
