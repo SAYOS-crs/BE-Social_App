@@ -25,7 +25,7 @@ export const SendEmail = async (MailInfo: ImailInfo) => {
     //   rejectUnauthorized: true,
     // },
   });
-
+  // re assign te from
   MailInfo.from = `"Social App" <${EMAIL}> `;
   transporter.sendMail(MailInfo, (error, info) => {
     if (error) throw new BadRequstExption("error while sending email", error);
