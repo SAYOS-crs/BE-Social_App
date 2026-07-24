@@ -24,7 +24,7 @@ class RedisService {
 
   async get(key: RedisArgument) {
     const result = await this._client.get(key);
-    return result;
+    return JSON.parse(result!);
   }
 
   async del(key: RedisArgument) {

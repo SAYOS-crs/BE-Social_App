@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import {
   BadRequstExption,
   ConflictExption,
+  OtpService,
   SuccessResponse,
 } from "../../Utils";
 import UserRepository from "../../DB/Repository/User.Repository";
@@ -10,6 +11,9 @@ import hashingService from "../../Utils/Security/hashing.service";
 import EncryptionService, {
   CreateSecretKey,
 } from "../../Utils/Security/Encryption.service";
+import { EmailType } from "../../Utils/Email/Email.templet";
+import RedisService from "../../DB/RedisRepository";
+import { OTP_Prefix } from "../../Utils/Email/Email.prefix";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -28,7 +32,6 @@ class AuthService {
       phone,
       username,
     }: I_AuthSignUpDTO = req.body;
-
     // checking if use exists
     const isUserExist = await this._UserRepository.exists({
       Email,
@@ -58,6 +61,43 @@ class AuthService {
     return SuccessResponse<any>({
       res,
       message: "good",
+      data: result,
+    });
+  };
+  // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
+  SendConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
+    // step1 > get the user email
+    const { Email } = req.body;
+    // step2 > send otp using email and emailtype for prefix
+    await OtpService.SendOTP({ Email, EmailType: EmailType.ConfirmEmail });
+    return SuccessResponse({ res, message: "check your Email" });
+  };
+  ConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
+    // step1 > get the  otp and email
+    const { OTP, Email } = req.body;
+    // ----------------------------------------------------------------------
+    // step2 > get the hased otp form redis
+    // step3 > compare the otp with the hashed one
+    // -- step2 + step3 = VerifyOTP
+    const otp_r = await OtpService.VerifyOTP(
+      Email,
+      OTP,
+      EmailType.ConfirmEmail,
+    );
+    if (!otp_r) throw new BadRequstExption("Invalid OTP");
+    // ----------------------------------------------------------------------
+    // step4 > update user date
+    const result =
+      (await this._UserRepository.updateOne({
+        filter: { Email: Email },
+        update: { confirmEmail: new Date() },
+      })) || "";
+
+    if (!result)
+      throw new ConflictExption("Error while updating user data ...");
+    return SuccessResponse<any>({
+      res,
+      message: "Email Confirmed Successfly",
       data: result,
     });
   };

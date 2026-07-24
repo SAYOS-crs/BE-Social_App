@@ -31,7 +31,7 @@ export const SendOTP = async ({
 };
 
 // verify otp + delete otp + confirm user email
-const VerifyOTP = async (
+export const VerifyOTP = async (
   Email: string,
   OTP: string,
   OtpType: EmailType,
@@ -45,9 +45,10 @@ const VerifyOTP = async (
   const isOTP = await RedisService.get(OTP_Prefix(Email, OtpType));
   if (!isOTP) throw new ConflictExption("InValid OTP or Email");
   const result = await hashingService.Compare(OTP, isOTP);
+
   if (!result) throw new ConflictExption("invalid OTP");
-  else if (result) {
-    await RedisService.del(OTP_Prefix(Email, OtpType));
-  }
+  // else if (result) {
+  //   await RedisService.del(OTP_Prefix(Email, OtpType));
+  // }
   return true;
 };
