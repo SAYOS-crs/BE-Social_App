@@ -1,7 +1,7 @@
 import jwt, { type SignOptions, type JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { HUserDocument } from "../../DB/models/User.model";
-import { UnAuthroizedExption } from "../response";
+import { HUserDocument, IUser } from "../../DB/models/User.model";
+import { NotFoundExption, UnAuthroizedExption } from "../response";
 import {
   JWT_USER_ACCESS_SECRET,
   JWT_USER_REFRESH_SECRET,
@@ -10,7 +10,8 @@ import {
   JWT_ACCESS_EXPIRES_IN,
   JWT_REFRESH_EXPIRES_IN,
 } from "../../Config/config";
-import { Rolle } from "../Enums/enum";
+import { Rolle, TokenType } from "../Enums/enum";
+import UserRepository from "../../DB/Repository/User.Repository";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -30,11 +31,17 @@ export interface ITokenPair {
   refreshToken: string;
 }
 
+export interface IDecodeResult {
+  user: HUserDocument;
+  decoded: ITokenPayload & JwtPayload;
+}
+
 // ─── JWT Service ──────────────────────────────────────────────────────────────
 
 class JWTService {
   private readonly _accessExpiresIn: number = JWT_ACCESS_EXPIRES_IN ?? 900;
   private readonly _refreshExpiresIn: number = JWT_REFRESH_EXPIRES_IN ?? 3600;
+  private readonly _userRepository = new UserRepository();
 
   constructor() {}
 
@@ -96,7 +103,8 @@ class JWTService {
    * @param user - HUserDocument — the authenticated user document from the DB.
    * @returns ITokenPair — { accessToken, refreshToken } signed with the user's role secrets.
    */
-  CredentialsGenerator(user: HUserDocument): ITokenPair {
+  CredentialsGenerator(user: IUser): ITokenPair {
+    if (!user.id) throw new NotFoundExption("User not found");
     const signatures = this.SignatureIdentifier(user.Rolle);
 
     const accessToken = this.TokenGenerator(
@@ -117,27 +125,79 @@ class JWTService {
   // ── Verify Token ─────────────────────────────────────────────────────────────
 
   /**
-   * Verifies and decodes a JWT from the Authorization header.
-   * @param authorization - The raw Authorization header value (e.g. "User <token>" or "Admin <token>").
-   *                        Split by " " → [0] = role (Bearer) used to resolve the signature,
-   *                                      [1] = the JWT token string.
+   * Verifies and decodes a JWT token.
+   * @param token     - The raw JWT string.
+   * @param signature - The signing secret used when the token was issued.
    * @returns ITokenPayload & JwtPayload — the decoded token payload.
    */
-  VerifyToken(authorization: string): ITokenPayload & JwtPayload {
-    const [bearer, token] = authorization.split(" ");
-
-    // guard: both parts must exist after the split
-    if (!bearer || !token)
-      throw new UnAuthroizedExption("Invalid authorization header format");
-
-    const { accessSignature } = this.SignatureIdentifier(bearer as Rolle);
+  VerifyToken(token: string, signature: string): ITokenPayload & JwtPayload {
+    // guard: both params must be provided
+    if (!token || !signature)
+      throw new UnAuthroizedExption("Token and signature are required");
 
     // guard: verify the token — throws if expired or tampered
     try {
-      return jwt.verify(token, accessSignature) as ITokenPayload & JwtPayload;
+      return jwt.verify(token, signature) as ITokenPayload & JwtPayload;
     } catch {
-      throw new UnAuthroizedExption("Invalid or expired token");
+      throw new UnAuthroizedExption("Invalid signature");
     }
+  }
+
+  // ── Decode ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Decodes an incoming authorization header and returns the authenticated user.
+   * Intended to be called exclusively from the authentication middleware.
+   *
+   * Flow:
+   *   1. Destructure `authorization` into { token, bearer }.
+   *   2. Derive the correct signing secrets via SignatureIdentifier(bearer as Rolle).
+   *   3. Select the right secret based on `tokenType` (Access | Refresh).
+   *   4. Verify & decode the token with VerifyToken.
+   *   5. Look up the user by the decoded userId and return the document.
+   *
+   * @param authorization - Raw Authorization header value (e.g. "User eyJ...").
+   * @param tokenType     - TokenType enum — which signature slot to validate against (Access | Refresh).
+   * @returns Promise<IDecodeResult> — { user, decoded } the authenticated user document and the decoded token payload.
+   * @throws UnAuthroizedExption  if the header is missing / malformed.
+   * @throws NotFoundExption      if no user matches the decoded userId.
+   */
+  async Decode(
+    authorization: string,
+    tokenType: TokenType,
+  ): Promise<IDecodeResult> {
+    // guard: authorization header must be present
+    if (!authorization)
+      throw new UnAuthroizedExption("Authorization header is required");
+
+    // step 1 — split the header into bearer (role identifier) and raw token
+    const [bearer, token] = authorization.split(" ");
+
+    if (!bearer || !token)
+      throw new UnAuthroizedExption(
+        "Malformed authorization header — expected format: '<Role> <token>'",
+      );
+
+    // step 2 — retrieve the signing secret pair for this role
+    const signatures = this.SignatureIdentifier(bearer as Rolle);
+
+    // step 3 — pick the correct secret based on the requested token type
+    const signature =
+      tokenType === TokenType.Access
+        ? signatures.accessSignature
+        : signatures.refreshSignature;
+
+    // step 4 — verify and decode the token (throws on invalid / expired)
+    const decoded = this.VerifyToken(token, signature);
+
+    // step 5 — look up the user in the database by the decoded userId
+    const user = await this._userRepository.findOne({
+      filter: { _id: decoded.userId },
+    });
+
+    if (!user) throw new NotFoundExption("User not found");
+
+    return { user: user as HUserDocument, decoded };
   }
 }
 

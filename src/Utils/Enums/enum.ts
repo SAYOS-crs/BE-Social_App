@@ -13,3 +13,8 @@ export enum Providers {
   Google = "Google",
   Gmail = "Gmail",
 }
+
+export enum TokenType {
+  Access = "Access",
+  Refresh = "Refresh",
+}

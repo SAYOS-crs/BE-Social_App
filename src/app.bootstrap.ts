@@ -5,6 +5,7 @@ import { GlobaleErrorExption } from "./Middlewares";
 import { ConnectMongooseDB, ConnectRedisDB } from "./DB/Connection";
 import { NotFoundExption } from "./Utils";
 import chalk from "chalk";
+import { UserRouter } from "./Modules/User";
 
 export default async function bootstrap() {
   const app: Express = express();
@@ -20,7 +21,7 @@ export default async function bootstrap() {
   // });
   // routers :
   app.use("/api/v1/auth", AuthRouter);
-
+  app.use("/api/v1/user", UserRouter);
   // not found router handler
   app.use("/*dummy", (req, res, next) => {
     throw new NotFoundExption("Router not found!");

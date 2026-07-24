@@ -10,6 +10,8 @@ import { Enums } from "../../Utils";
 
 export interface IUser {
   // name
+
+  id?: string;
   firstName: string;
   lastName: string;
   username?: string;

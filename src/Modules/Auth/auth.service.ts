@@ -2,6 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import {
   BadRequstExption,
   ConflictExption,
+  HashingService,
+  JWTService,
+  NotFoundExption,
   OtpService,
   SuccessResponse,
 } from "../../Utils";
@@ -13,7 +16,7 @@ import EncryptionService, {
 } from "../../Utils/Security/Encryption.service";
 import { EmailType } from "../../Utils/Email/Email.templet";
 import RedisService from "../../DB/RedisRepository";
-import { OTP_Prefix } from "../../Utils/Email/Email.prefix";
+import { HUserDocument, IUser } from "../../DB/models/User.model";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -64,6 +67,27 @@ class AuthService {
       data: result,
     });
   };
+
+  Login = async (req: Request, res: Response): Promise<Response> => {
+    const { Email, Password } = req.body;
+    // ----------------------------------------------------------------------
+
+    const user: HUserDocument | null = await this._UserRepository.findOne({
+      filter: { Email },
+    });
+
+    if (!user) throw new NotFoundExption("User not found");
+    if (!(await HashingService.Compare(Password, user.Password)))
+      throw new BadRequstExption("Invalid Password");
+    // ----------------------------------------------------------------------
+    const Credentials = await JWTService.CredentialsGenerator(user);
+    return SuccessResponse({
+      res,
+      message: "logged in successfully",
+      data: Credentials,
+    });
+  };
+
   // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
   SendConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
     // step1 > get the user email
