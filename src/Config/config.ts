@@ -21,3 +21,10 @@ export const SECRET_KEY = GetENV("SECRET_KEY");
 export const REDIS_URL = GetENV("REDIS_URL") || "";
 export const EMAIL = GetENV("EMAIL") || "";
 export const PASS = GetENV("PASS") || "";
+// ─── JWT ─────────────────────────────────────────────────────────────────────
+export const JWT_USER_ACCESS_SECRET   = GetENV("JWT_USER_ACCESS_SECRET");
+export const JWT_USER_REFRESH_SECRET  = GetENV("JWT_USER_REFRESH_SECRET");
+export const JWT_ADMIN_ACCESS_SECRET  = GetENV("JWT_ADMIN_ACCESS_SECRET");
+export const JWT_ADMIN_REFRESH_SECRET = GetENV("JWT_ADMIN_REFRESH_SECRET");
+export const JWT_ACCESS_EXPIRES_IN    = Number(GetENV("JWT_ACCESS_EXPIRES_IN"));
+export const JWT_REFRESH_EXPIRES_IN   = Number(GetENV("JWT_REFRESH_EXPIRES_IN"));
