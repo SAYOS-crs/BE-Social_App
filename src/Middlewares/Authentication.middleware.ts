@@ -25,7 +25,7 @@ export interface IRequest extends Request {
  *          and req.decoded, then calls next(). Calls next(error) on failure.
  */
 const Authentication = (tokenType: TokenType) => {
-  return async (req: IRequest, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // guard: authorization header must be present in the request
       const authorization = req.headers.authorization;
@@ -39,7 +39,7 @@ const Authentication = (tokenType: TokenType) => {
       );
 
       // attach user and decoded payload to the request for downstream handlers
-      req.user = user;
+      req.user as HUserDocument = user;
       req.decoded = decoded;
 
       next();

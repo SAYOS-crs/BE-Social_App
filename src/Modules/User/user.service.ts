@@ -8,7 +8,7 @@ class UserService {
   constructor() {}
 
   public GetUserProfile = async (
-    req: IRequest,
+    req: Request,
     res: Response,
   ): Promise<Response> => {
     const user = req.user;
