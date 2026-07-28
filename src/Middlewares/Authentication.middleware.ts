@@ -39,7 +39,7 @@ const Authentication = (tokenType: TokenType) => {
       );
 
       // attach user and decoded payload to the request for downstream handlers
-      req.user as HUserDocument = user;
+      req.user = user;
       req.decoded = decoded;
 
       next();

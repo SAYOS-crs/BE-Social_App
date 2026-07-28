@@ -35,3 +35,10 @@ export class UnAuthroizedExption extends ApplicationErrorExption {
     this.name = this.constructor.name;
   }
 }
+export class ForbiddenExption extends ApplicationErrorExption {
+  constructor(message: string = "Forbidden access", cause?: unknown, options?: ErrorOptions) {
+    super(message, 403, cause, options);
+    this.name = this.constructor.name;
+  }
+}
+
