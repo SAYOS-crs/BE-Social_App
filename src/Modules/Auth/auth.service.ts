@@ -3,13 +3,18 @@ import {
   BadRequstExption,
   ConflictExption,
   HashingService,
+  ITokenPair,
   JWTService,
   NotFoundExption,
   OtpService,
   SuccessResponse,
 } from "../../Utils";
 import UserRepository from "../../DB/Repository/User.Repository";
-import { I_AuthSignUpDTO } from "./auth.dto";
+import {
+  I_AuthSignUpDTO,
+  I_AuthLoginDTO,
+  I_AuthLoginResponseDTO,
+} from "./auth.dto";
 import hashingService from "../../Utils/Security/hashing.service";
 import EncryptionService, {
   CreateSecretKey,
@@ -69,7 +74,7 @@ class AuthService {
   };
 
   Login = async (req: Request, res: Response): Promise<Response> => {
-    const { Email, Password } = req.body;
+    const { Email, Password }: I_AuthLoginDTO = req.body;
     // ----------------------------------------------------------------------
 
     const user: HUserDocument | null = await this._UserRepository.findOne({
@@ -80,8 +85,8 @@ class AuthService {
     if (!(await HashingService.Compare(Password, user.Password)))
       throw new BadRequstExption("Invalid Password");
     // ----------------------------------------------------------------------
-    const Credentials = await JWTService.CredentialsGenerator(user);
-    return SuccessResponse({
+    const Credentials: ITokenPair = await JWTService.CredentialsGenerator(user);
+    return SuccessResponse<I_AuthLoginResponseDTO>({
       res,
       message: "logged in successfully",
       data: Credentials,

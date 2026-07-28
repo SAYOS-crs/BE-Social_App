@@ -1,12 +1,13 @@
 import * as z from "zod";
+import { GeneralFields } from "../../Utils";
 import { Enums } from "../../Utils";
 
 export const SignupSchema = {
   body: z
     .strictObject({
       username: z.string(),
-      Email: z.string().max(35, "max length is 35").min(9, "min length in 9"),
-      Password: z.string().max(20, "max password length is 20"),
+      Email: GeneralFields.Email,
+      Password: GeneralFields.Password,
       confirmPassword: z.string(),
       phone: z.string(),
       address: z.string(),
@@ -23,4 +24,11 @@ export const SignupSchema = {
         });
       }
     }),
+};
+
+export const LoginSchema = {
+  body: z.strictObject({
+    Email: GeneralFields.Email,
+    Password: GeneralFields.Password,
+  }),
 };
