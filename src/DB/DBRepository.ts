@@ -1,6 +1,5 @@
 import mongoose, {
   ApplyBasicCreateCasting,
-  HydratedDocument,
   InsertManyOptions,
   Model,
   MongooseUpdateQueryOptions,
@@ -69,10 +68,26 @@ export class BaseRepository<Tdocment> {
     data,
     options,
   }: {
-    data: Array<Partial<Tdocment>>;
+    data: Array<Partial<ApplyBasicCreateCasting<Tdocment>>>;
     options?: InsertManyOptions;
   }) {
+    if (options) return await this.model.insertMany(data, options);
     return await this.model.insertMany(data);
+  }
+
+  async Create({
+    data,
+    options,
+  }: {
+    data:
+      | Partial<ApplyBasicCreateCasting<Tdocment>>
+      | Array<Partial<ApplyBasicCreateCasting<Tdocment>>>;
+    options?: SaveOptions | InsertManyOptions;
+  }) {
+    if (Array.isArray(data)) {
+      return await this.insertMany({ data, options: options as InsertManyOptions });
+    }
+    return await this.insertOne({ data, options: options as SaveOptions });
   }
 
   // /*/*/*/*/*/*/*/*/*/*/*/* update methods
