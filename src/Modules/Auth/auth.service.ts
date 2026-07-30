@@ -49,13 +49,13 @@ class AuthService {
     }
     // -------------------------------------
     // insert User
-    const result = await this._UserRepository.insertOne({
+    const result = await this._UserRepository.Create({
       data: {
         Email,
         Gender,
-        Password: await hashingService.Hash(Password),
+        Password,
         address,
-        phone: await EncryptionService.Encrypt(phone),
+        phone,
         username,
       },
     });

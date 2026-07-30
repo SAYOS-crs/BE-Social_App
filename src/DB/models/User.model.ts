@@ -6,7 +6,7 @@
 // 5. implement the save option assign
 
 import mongoose, { Schema } from "mongoose";
-import { Enums } from "../../Utils";
+import { EncryptionService, Enums, HashingService } from "../../Utils";
 
 export interface IUser {
   // name
@@ -37,6 +37,7 @@ export interface IUser {
   ChangeCradintials?: Date;
   CreatedAt: Date;
   UpdatedAt?: Date;
+  isDeleted?: boolean;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -81,6 +82,7 @@ const UserSchema = new Schema<IUser>(
       enum: Enums.Gender,
       default: Enums.Gender.Male,
     },
+
     Rolle: {
       type: String,
       enum: Enums.Rolle,
@@ -93,6 +95,10 @@ const UserSchema = new Schema<IUser>(
       default: Enums.Providers.System,
     },
     ChangeCradintials: Date,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     collection: "User_Collection",
@@ -101,7 +107,7 @@ const UserSchema = new Schema<IUser>(
     toObject: { virtuals: true },
   },
 );
-
+export type HUserDocument = mongoose.HydratedDocument<IUser>;
 UserSchema.virtual("username")
   .set(function (value: string) {
     const [firstName, lastName] = value.split(" ");
@@ -110,7 +116,39 @@ UserSchema.virtual("username")
   .get(function () {
     return `${this.firstName} ${this.lastName}`;
   });
+// decment middleware that hash the passowrd before save the doc.
+UserSchema.pre(
+  "save",
+  async function (this: HUserDocument & { wasNew: boolean }) {
+    this.wasNew = this.isNew;
+    if (this.isModified("Password") || this.isNew) {
+      this.Password = await HashingService.Hash(this.Password);
+      this.phone = await EncryptionService.Encrypt(this.phone);
+    }
+  },
+);
+// UserSchema.post(
+//   "save",
+//   async function (this: HUserDocument & { wasNew: boolean }) {
+//     const that = this;
+//     if (that.wasNew) {
+//       console.log(that.wasNew);
+//     }
+//   },
+// );
 
+// query middleware that insure the search dose not include the doc are softDeleted.
+UserSchema.pre("findOne", async function () {
+  this.findOne({ isDeleted: false });
+});
+// docment middleware that hash the password in update case + its docment middleware bcz we use { document: true }.
+UserSchema.pre("updateOne", { document: true }, async function () {
+  if (this.isModified("Password") && !this.isNew) {
+    this.Password = await HashingService.Hash(this.Password);
+  }
+  if (this.isModified("phone") && !this.isNew) {
+    this.phone = await EncryptionService.Encrypt(this.phone);
+  }
+});
 const UserModel = mongoose.model<IUser>("User", UserSchema);
 export default UserModel;
-export type HUserDocument = mongoose.HydratedDocument<IUser>;
