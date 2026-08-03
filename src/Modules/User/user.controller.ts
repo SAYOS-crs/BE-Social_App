@@ -12,4 +12,18 @@ router.get(
   UserService.GetUserProfile,
 );
 
+router.post(
+  "/assignFCMtoken",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  UserService.GetFCM_Token,
+);
+
+router.post(
+  "/sendNotification",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  UserService.sendNotification,
+);
+
 export default router;

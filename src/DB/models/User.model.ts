@@ -10,7 +10,7 @@ import { EncryptionService, Enums, HashingService } from "../../Utils";
 
 export interface IUser {
   // name
-
+  FCM_Token?: string[];
   id?: string;
   firstName: string;
   lastName: string;
@@ -98,6 +98,9 @@ const UserSchema = new Schema<IUser>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    FCM_Token: {
+      type: [String],
     },
   },
   {
