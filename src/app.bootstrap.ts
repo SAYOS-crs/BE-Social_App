@@ -30,7 +30,19 @@ export default async function bootstrap() {
   // global error handler - must be registered AFTER all routes
   app.use(GlobaleErrorExption);
 
-  app.listen(PORT, () => {
+  app.listen(PORT, (err) => {
+    if (err && PORT) {
+      let NewPORT = PORT + 1;
+      app.listen(NewPORT, () => {
+        console.log(
+          chalk.green(
+            `${chalk.red(`port ${PORT} is UnAvailable `)} , Server is running of port : ${chalk.blue(NewPORT)}`,
+          ),
+        );
+        return;
+      });
+      return;
+    }
     console.log(chalk.green(`Server is running of port : ${chalk.blue(PORT)}`));
   });
 }

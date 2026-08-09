@@ -18,3 +18,8 @@ export enum TokenType {
   Access = "Access",
   Refresh = "Refresh",
 }
+
+export enum StorageAprotches {
+  Memory,
+  Disk,
+}

@@ -5,8 +5,6 @@ import {
   NotificationService,
   SuccessResponse,
 } from "../../Utils";
-import { IRequest } from "../../Middlewares/Authentication.middleware";
-import { backgroundColorNames } from "chalk";
 
 class UserService {
   private _NotificationService = NotificationService;
@@ -19,6 +17,10 @@ class UserService {
   ): Promise<Response> => {
     const user = req.user;
     return SuccessResponse<any>({ res, message: "good", data: user });
+  };
+
+  public AddUserPhoto = async (req: Request, res: Response) => {
+    return SuccessResponse({ res, message: "done", data: req.file });
   };
 
   public GetFCM_Token = async (
@@ -39,7 +41,7 @@ class UserService {
     });
   };
 
-  sendNotification = async (
+  public sendNotification = async (
     req: Request,
     res: Response,
   ): Promise<Response | void> => {

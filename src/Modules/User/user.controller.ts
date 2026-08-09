@@ -1,7 +1,17 @@
 import { Router } from "express";
 import UserService from "./user.service";
-import { Authentication, Authorization } from "../../Middlewares";
-import { Rolle, TokenType } from "../../Utils";
+import {
+  Authentication,
+  Authorization,
+  CloudFileUpload,
+} from "../../Middlewares";
+import {
+  AllowedFileTypes,
+  FileFilter,
+  Rolle,
+  StorageAprotches,
+  TokenType,
+} from "../../Utils";
 
 const router = Router();
 
@@ -10,6 +20,18 @@ router.get(
   Authentication(TokenType.Access),
   Authorization([Rolle.User]),
   UserService.GetUserProfile,
+);
+
+router.patch(
+  "/addUserPhoto",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  CloudFileUpload({
+    StorageAprotch: StorageAprotches.Memory,
+    maxSize: 5,
+  }).single("photo"),
+  FileFilter(AllowedFileTypes.photo),
+  UserService.AddUserPhoto,
 );
 
 router.post(

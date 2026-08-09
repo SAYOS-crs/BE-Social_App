@@ -1,3 +1,4 @@
+import { getMessaging } from "firebase-admin/messaging";
 import { BadRequstExption } from "../response";
 import FireBaseApp from "./notification.config";
 class NotificationService {
@@ -13,7 +14,7 @@ class NotificationService {
         token: fcm_token,
         data,
       };
-      return await FireBaseApp.messaging().send(payload);
+      return await getMessaging(FireBaseApp).send(payload);
     } catch (err) {
       throw new BadRequstExption("Error while sending notoification", err);
     }
