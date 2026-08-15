@@ -8,9 +8,8 @@ config({
       : "./dist/Config/prod.env",
   ),
 });
-const GetENV = (key: string) => {
-  if (!key) return undefined;
-  return process.env[key];
+const GetENV = (key: string): string => {
+  return process.env[key] as string;
 };
 // --------------- env attriputes
 export const PORT = GetENV("PORT");
@@ -22,9 +21,15 @@ export const REDIS_URL = GetENV("REDIS_URL") || "";
 export const EMAIL = GetENV("EMAIL") || "";
 export const PASS = GetENV("PASS") || "";
 // ─── JWT ─────────────────────────────────────────────────────────────────────
-export const JWT_USER_ACCESS_SECRET   = GetENV("JWT_USER_ACCESS_SECRET");
-export const JWT_USER_REFRESH_SECRET  = GetENV("JWT_USER_REFRESH_SECRET");
-export const JWT_ADMIN_ACCESS_SECRET  = GetENV("JWT_ADMIN_ACCESS_SECRET");
+export const JWT_USER_ACCESS_SECRET = GetENV("JWT_USER_ACCESS_SECRET");
+export const JWT_USER_REFRESH_SECRET = GetENV("JWT_USER_REFRESH_SECRET");
+export const JWT_ADMIN_ACCESS_SECRET = GetENV("JWT_ADMIN_ACCESS_SECRET");
 export const JWT_ADMIN_REFRESH_SECRET = GetENV("JWT_ADMIN_REFRESH_SECRET");
-export const JWT_ACCESS_EXPIRES_IN    = Number(GetENV("JWT_ACCESS_EXPIRES_IN"));
-export const JWT_REFRESH_EXPIRES_IN   = Number(GetENV("JWT_REFRESH_EXPIRES_IN"));
+export const JWT_ACCESS_EXPIRES_IN = Number(GetENV("JWT_ACCESS_EXPIRES_IN"));
+export const JWT_REFRESH_EXPIRES_IN = Number(GetENV("JWT_REFRESH_EXPIRES_IN"));
+// ---- AWS ----------------------------------------------------------------------
+export const AWS_REGION: string = GetENV("AWS_REGION");
+export const S3_BUCKET_NAME: string = GetENV("S3_BUCKET_NAME");
+export const S3_SECRET_ID: string = GetENV("S3_SECRET_ID");
+export const S3_SECRET_KEY: string = GetENV("S3_SECRET_KEY");
+export const S3_TTL: number = Number(GetENV("S3_TTL"));

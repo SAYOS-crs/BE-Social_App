@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import UserRepository from "../../DB/Repository/User.Repository";
 import {
+  AWS_SERVICE,
   BadRequstExption,
   NotificationService,
   SuccessResponse,
@@ -20,7 +21,12 @@ class UserService {
   };
 
   public AddUserPhoto = async (req: Request, res: Response) => {
-    return SuccessResponse({ res, message: "done", data: req.file });
+    const result = await AWS_SERVICE.S3service.UploadFile({
+      file: req.file as Express.Multer.File,
+      path: "User",
+      _id: req.user.id,
+    });
+    return SuccessResponse({ res, message: "done", data: result });
   };
 
   public GetFCM_Token = async (
