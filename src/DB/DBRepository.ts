@@ -85,7 +85,10 @@ export class BaseRepository<Tdocment> {
     options?: SaveOptions | InsertManyOptions;
   }) {
     if (Array.isArray(data)) {
-      return await this.insertMany({ data, options: options as InsertManyOptions });
+      return await this.insertMany({
+        data,
+        options: options as InsertManyOptions,
+      });
     }
     return await this.insertOne({ data, options: options as SaveOptions });
   }

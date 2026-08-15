@@ -11,7 +11,7 @@ import { EncryptionService, Enums, HashingService } from "../../Utils";
 export interface IUser {
   // name
   FCM_Token?: string[];
-  id?: string;
+  id: string;
   firstName: string;
   lastName: string;
   username?: string;
@@ -111,6 +111,7 @@ const UserSchema = new Schema<IUser>(
   },
 );
 export type HUserDocument = mongoose.HydratedDocument<IUser>;
+
 UserSchema.virtual("username")
   .set(function (value: string) {
     const [firstName, lastName] = value.split(" ");

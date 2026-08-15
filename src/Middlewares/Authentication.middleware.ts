@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { ITokenPayload, JWTService, TokenType } from "../Utils";
+import {
+  ITokenPayload,
+  JWTService,
+  NotFoundExption,
+  TokenType,
+} from "../Utils";
 import { UnAuthroizedExption } from "../Utils";
 import { HUserDocument } from "../DB/models/User.model";
 import { JwtPayload } from "jsonwebtoken";
@@ -37,9 +42,10 @@ const Authentication = (tokenType: TokenType) => {
         authorization,
         tokenType,
       );
-
+      if (!user || !decoded)
+        throw new NotFoundExption("User not Found : authentication middleware");
       // attach user and decoded payload to the request for downstream handlers
-      req.user = user;
+      req.user = user as HUserDocument;
       req.decoded = decoded;
 
       next();

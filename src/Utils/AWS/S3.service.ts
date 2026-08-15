@@ -14,8 +14,18 @@ import { Schema } from "mongoose";
 import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
 
-export const s3KeyPrefix = (UserId: string, file: Express.Multer.File) => {
-  return `${UserId}__${file.originalname}`;
+export const s3PathKeyPrefix = ({
+  folder,
+  id,
+  AssetType,
+  file,
+}: {
+  folder: "User" | "Post";
+  id: string;
+  AssetType: "Profile" | "Cover" | "Images" | "Docs";
+  file: Express.Multer.File;
+}) => {
+  return `${folder}/${id.toString()}/${AssetType}/${Date.now()}-${file.originalname}`;
 };
 
 class S3service {
@@ -40,14 +50,13 @@ class S3service {
   }
 
   public async UploadFile({
-    _id,
     file,
     ContentType,
     path,
+    // Access control list (ACL)
     ACL = ObjectCannedACL.private,
     StorageAprotche = StorageAprotches.Memory,
   }: {
-    _id: string;
     file: Express.Multer.File;
     ContentType?: string;
     path: string;
@@ -56,7 +65,7 @@ class S3service {
   }) {
     const commandParam = {
       Bucket: this.S3_BUCKET_NAME,
-      Key: `${this.S3_BUCKET_NAME}/${path}/${s3KeyPrefix(_id, file)}`,
+      Key: `${this.S3_BUCKET_NAME}/${path}`,
       ACL,
       Body:
         // make sure the file is a buffer
@@ -67,7 +76,10 @@ class S3service {
     };
     try {
       const command = new PutObjectCommand(commandParam);
-      return await this.Client.send(command);
+      await this.Client.send(command);
+      if (!command.input.Key)
+        throw new BadRequstExption("Error while uploading asset");
+      return command.input.Key;
     } catch (err) {
       throw new BadRequstExption(
         "Error while Uploading files to AWS_S3_Bucket",

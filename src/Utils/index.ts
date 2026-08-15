@@ -5,3 +5,4 @@ export * from "./Security/index";
 export * from "./Validation/index";
 export * from "./Notification/index";
 export * as AWS_SERVICE from "./AWS";
+export * from "./AWS";
