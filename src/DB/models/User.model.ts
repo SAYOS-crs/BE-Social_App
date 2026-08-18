@@ -26,7 +26,7 @@ export interface IUser {
   address: string;
   // photos
   UserImage?: string;
-  CoverImage?: string;
+  CoverImage?: string[];
 
   // role + gender
   Gender: Enums.Gender;
@@ -75,7 +75,7 @@ const UserSchema = new Schema<IUser>(
     },
     // images
     UserImage: String,
-    CoverImage: String,
+    CoverImage: [String],
     //Enums
     Gender: {
       type: String,

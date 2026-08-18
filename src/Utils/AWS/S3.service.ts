@@ -1,6 +1,7 @@
 import {
   ObjectCannedACL,
   PutObjectCommand,
+  PutObjectCommandInput,
   S3Client,
 } from "@aws-sdk/client-s3";
 import {
@@ -13,6 +14,7 @@ import { StorageAprotches } from "../Enums";
 import { Schema } from "mongoose";
 import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
+import { Upload } from "@aws-sdk/lib-storage";
 
 export const s3PathKeyPrefix = ({
   folder,
@@ -24,7 +26,7 @@ export const s3PathKeyPrefix = ({
   id: string;
   AssetType: "Profile" | "Cover" | "Images" | "Docs";
   file: Express.Multer.File;
-}) => {
+}): string => {
   return `${folder}/${id.toString()}/${AssetType}/${Date.now()}-${file.originalname}`;
 };
 
@@ -86,6 +88,47 @@ class S3service {
         err,
       );
     }
+  }
+
+  public async UploadLargeFiles({
+    file,
+    path,
+    ContentType,
+    ACL = ObjectCannedACL.private,
+    partSize = 5,
+    StorageAprotche = StorageAprotches.Disk,
+  }: {
+    file: Express.Multer.File;
+    path: string;
+    ContentType?: string;
+    ACL?: ObjectCannedACL;
+    partSize?: number;
+    StorageAprotche?: StorageAprotches;
+  }) {
+    const params: PutObjectCommandInput = {
+      Bucket: this.S3_BUCKET_NAME,
+      Key: `${this.S3_BUCKET_NAME}/${path}`,
+      ACL,
+      Body:
+        StorageAprotche === StorageAprotches.Memory
+          ? file.buffer
+          : readFileSync(file.path),
+      ContentType: file.mimetype || ContentType,
+    };
+
+    const command = new Upload({
+      client: this.Client,
+      params,
+      partSize: 1024 * 1024 * partSize,
+    });
+
+    command.on("httpUploadProgress", (prograss) => {
+      console.log(
+        `file uploade prograss : ${((prograss.loaded as number) / (prograss.total as number)) * 100}%`,
+      );
+    });
+
+    return (await command.done()).Key;
   }
 }
 

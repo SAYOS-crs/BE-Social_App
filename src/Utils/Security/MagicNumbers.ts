@@ -17,7 +17,9 @@ export default function FileFilter(allawedfileType: string[]) {
   // return closure
   return async (req: Request, res: Response, next: NextFunction) => {
     // setting buffer globle
+
     let buffer: string | Uint8Array | ArrayBuffer = "";
+
     // sett the buffer value
     // if req.file?.buffer === memory
     // else req.file?.path === temp/disk

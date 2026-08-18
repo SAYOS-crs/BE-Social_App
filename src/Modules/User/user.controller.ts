@@ -34,6 +34,17 @@ router.patch(
   UserService.AddUserPhoto,
 );
 
+router.put(
+  "/addUserCover",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  CloudFileUpload({ StorageAprotch: StorageAprotches.Disk }).single(
+    "ImageCover",
+  ),
+  FileFilter(AllowedFileTypes.photo),
+  UserService.AddUserCoverImage,
+);
+
 router.post(
   "/assignFCMtoken",
   Authentication(TokenType.Access),

@@ -5,6 +5,7 @@ import {
   BadRequstExption,
   NotificationService,
   s3PathKeyPrefix,
+  StorageAprotches,
   SuccessResponse,
   UnAuthroizedExption,
 } from "../../Utils";
@@ -23,7 +24,15 @@ export class UserService {
     }
     return req.user;
   };
+  private _GetAuthorizedFile = (req: Request): Express.Multer.File => {
+    if (!req.file) {
+      throw new BadRequstExption("file not receved !");
+    }
 
+    return req.file;
+  };
+
+  // ------------ routers --------------\\
   public GetUserProfile = async (
     req: Request,
     res: Response,
@@ -37,26 +46,72 @@ export class UserService {
     res: Response,
   ): Promise<Response> => {
     const user = this._GetAuthenticatedUser(req);
+    const file = this._GetAuthorizedFile(req);
+    // -------------------------------------------------------
     const Key = await this._AWS_S3.UploadFile({
-      file: req.file as Express.Multer.File,
+      file,
       path: s3PathKeyPrefix({
-        folder: "User",
         AssetType: "Profile",
-        file: req.file as Express.Multer.File,
+        file,
+        folder: "User",
         id: user.id,
       }),
     });
+
     if (!Key)
       throw new BadRequstExption(
         "Error while Uploading Asset to AWS Service !",
       );
+    console.log(Key);
+    // -------------------------------------------------------
 
     const result = await this._UserRepository.updateOne({
       filter: { _id: user._id },
       update: { UserImage: Key },
     });
+
     if (!result) throw new BadRequstExption("error while setting user photo");
     return SuccessResponse({ res, message: "done", data: result });
+  };
+
+  public AddUserCoverImage = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    // 1. get the User
+    const user = this._GetAuthenticatedUser(req);
+    // 2. get the file
+    const file = this._GetAuthorizedFile(req);
+    // -------------------------------------------------------------
+    // 3. send file by aws Service / UploadLargeFiles
+    const Key = await this._AWS_S3.UploadLargeFiles({
+      file: file,
+      path: s3PathKeyPrefix({
+        AssetType: "Cover",
+        file: file,
+        folder: "User",
+        id: user.id,
+      }) as string,
+      ContentType: file.mimetype as string,
+      StorageAprotche: StorageAprotches.Disk,
+    });
+
+    if (!Key) {
+      throw new BadRequstExption("Key form aws is missing !");
+    }
+
+    // --------------------------------------------------------------
+    // 4. send the Key form AWS to User CoverImage
+    const result = await this._UserRepository.updateOne({
+      filter: { _id: user._id },
+      update: { $push: { CoverImage: Key } },
+    });
+
+    if (!result) {
+      throw new BadRequstExption("Error while Updating User CoverImage!");
+    }
+
+    return SuccessResponse<any>({ res, message: "done", data: result });
   };
 
   public GetFCM_Token = async (
@@ -126,3 +181,4 @@ export class UserService {
 }
 
 export default new UserService();
+/*  */
