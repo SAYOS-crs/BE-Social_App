@@ -32,4 +32,4 @@ export const AWS_REGION: string = GetENV("AWS_REGION");
 export const S3_BUCKET_NAME: string = GetENV("S3_BUCKET_NAME");
 export const S3_SECRET_ID: string = GetENV("S3_SECRET_ID");
 export const S3_SECRET_KEY: string = GetENV("S3_SECRET_KEY");
-export const S3_TTL: number = Number(GetENV("S3_TTL"));
+export const S3_SignedUrl_TTL: number = Number(GetENV("S3_SignedUrl_TTL"));

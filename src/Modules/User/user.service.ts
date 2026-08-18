@@ -67,6 +67,7 @@ export class UserService {
         id: user.id,
       }),
     });
+    console.log(file.mimetype, file.originalname);
 
     if (!Key)
       throw new BadRequstExption(
@@ -151,6 +152,44 @@ export class UserService {
     }
 
     return SuccessResponse<any>({ res, message: "done", data: result });
+  };
+  // ------------------------------------------------
+  /**
+   * Generates a temporary Presigned URL for direct client-to-S3 uploads.
+   *
+   * WORKFLOW STEPS:
+   * 1. Extract authenticated user context from token/session.
+   * 2. Receive file metadata (`ContentType`, `Originalname`) from request body.
+   * 3. Request S3 service to generate a signed PUT URL for the designated path.
+   * 4. Record/reserve the S3 object Key in the user database record.
+   * 5. Respond to client with `{ link, Key }` so client can PUT raw file to S3.
+   */
+  public PresignedURL = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    // STEP 1: Get the authenticated user ID
+    const user = this._GetAuthenticatedUser(req);
+    // STEP 2: Extract file metadata provided by client (no binary payload here)
+    const { ContentType, Originalname } = req.body;
+
+    // STEP 3: Generate the time-limited presigned S3 PUT URL and object Key
+    const payload = await this._AWS_S3.PresignedURL({
+      AssetType: "Profile",
+      ContentType,
+      Originalname,
+      folder: "User",
+      id: user.id,
+    });
+
+    // STEP 4: Store S3 Key in the database to link asset to the user profile
+    const result = await this._UserRepository.updateOne({
+      filter: { _id: user._id },
+      update: { $push: { CoverImage: payload.Key } },
+    });
+
+    // STEP 5: Send response containing `{ link, Key }` to client for direct upload
+    return SuccessResponse<any>({ res, data: { payload, result } });
   };
   // ------------------------------------------------
   // ------------------------------------------------

@@ -9,12 +9,14 @@ import {
   S3_BUCKET_NAME,
   S3_SECRET_ID,
   S3_SECRET_KEY,
+  S3_SignedUrl_TTL,
 } from "../../Config/config";
 import { StorageAprotches } from "../Enums";
 import { Schema } from "mongoose";
 import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
 import { Upload } from "@aws-sdk/lib-storage";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const s3PathKeyPrefix = ({
   folder,
@@ -35,6 +37,7 @@ class S3service {
   private readonly AWS_REGION: string;
   private readonly S3_SECRET_ID: string;
   private readonly S3_SECRET_KEY: string;
+  private readonly S3_SignedUrl_TTL: number;
   private readonly Client: S3Client;
 
   constructor() {
@@ -42,6 +45,7 @@ class S3service {
     this.S3_BUCKET_NAME = S3_BUCKET_NAME;
     this.S3_SECRET_ID = S3_SECRET_ID;
     this.S3_SECRET_KEY = S3_SECRET_KEY;
+    this.S3_SignedUrl_TTL = S3_SignedUrl_TTL;
     this.Client = new S3Client({
       region: this.AWS_REGION,
       credentials: {
@@ -50,7 +54,7 @@ class S3service {
       },
     });
   }
-
+  // =======================================================================
   public async UploadFile({
     file,
     ContentType,
@@ -89,7 +93,7 @@ class S3service {
       );
     }
   }
-
+  // =======================================================================
   public async UploadLargeFiles({
     file,
     path,
@@ -130,7 +134,7 @@ class S3service {
 
     return (await command.done()).Key;
   }
-
+  // =======================================================================
   public async UploadMultiFiles({
     files,
     ContentType,
@@ -164,6 +168,65 @@ class S3service {
     );
 
     return Urls;
+  }
+  // =======================================================================
+  /**
+   * PresignedURL Generation:
+   * -----------------------------------------------------------------------
+   * WHAT IT IS:
+   * A Presigned URL is a temporary, cryptographically signed URL generated with
+   * AWS credentials that delegates direct read/write permissions for a specific
+   * S3 object to a client (browser, mobile app) without sharing AWS secret keys.
+   *
+   * WHY USE IT:
+   * - Eliminates backend bottlenecks: Files upload directly to S3 (no server RAM/bandwidth load).
+   * - Security: Time-limited access (TTL) restricted to a specific path, method, and Content-Type.
+   *
+   * FULL LIFECYCLE (Creation to Usage):
+   * 1. [CLIENT] Sends file metadata (e.g., filename, Content-Type) to backend.
+   * 2. [SERVER] Validates request, constructs unique S3 Key, creates PutObjectCommand.
+   * 3. [SERVER] Signs command with AWS SDK (`getSignedUrl`), attaching SigV4 signature & TTL.
+   * 4. [SERVER] Returns `{ Key, link }` to client and optionally saves Key in DB.
+   * 5. [CLIENT] Directly sends HTTP `PUT` request to `link` with raw file binary in body.
+   * 6. [AWS S3] Verifies signature, expiration, and headers; stores object directly in S3.
+   */
+  public async PresignedURL({
+    Bucket = this.S3_BUCKET_NAME,
+    folder,
+    id,
+    AssetType,
+    // ContentType + Originalname provided by client in request body
+    ContentType,
+    Originalname,
+  }: {
+    Bucket?: string;
+    ContentType: string;
+    folder: "User" | "Post";
+    id: string;
+    AssetType: "Profile" | "Cover" | "Images" | "Docs";
+    Originalname: string;
+  }) {
+    // STEP 1: Build the PutObjectCommand with destination details & constraints
+    // - Bucket: Target AWS S3 bucket name
+    // - Key: Hierarchical S3 storage path with timestamp to prevent name collisions
+    // - ContentType: Enforces the exact MIME type allowed for direct upload
+    const command = new PutObjectCommand({
+      Bucket: this.S3_BUCKET_NAME,
+      Key: `${Bucket}/${folder}/${id.toString()}/${AssetType}/${Date.now()}-${Originalname}`,
+      ContentType,
+    });
+
+    // STEP 2: Cryptographically sign the command with AWS credentials
+    // - Generates a Signature Version 4 (SigV4) URL with query parameters
+    // - `expiresIn`: Time-to-Live (TTL) in seconds after which the link becomes invalid
+    const link = await getSignedUrl(this.Client, command, {
+      expiresIn: this.S3_SignedUrl_TTL,
+    });
+
+    // STEP 3: Return the target Key and presigned upload URL
+    // - `Key`: Relative S3 path to store in database for future retrieval/deletion
+    // - `link`: The signed URL for the frontend/client to execute direct HTTP PUT
+    return { Key: command.input.Key, link };
   }
 }
 

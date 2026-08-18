@@ -57,6 +57,13 @@ router.put(
   UserService.AddMultiFiles,
 );
 
+router.get(
+  "/PresignedURL",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  UserService.PresignedURL,
+);
+
 router.post(
   "/assignFCMtoken",
   Authentication(TokenType.Access),
