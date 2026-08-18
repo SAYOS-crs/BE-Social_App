@@ -31,6 +31,13 @@ export class UserService {
 
     return req.file;
   };
+  private _GetAuthorizedMultiFiles = (req: Request): Express.Multer.File[] => {
+    if (!req.files) {
+      throw new BadRequstExption("file not receved !");
+    }
+
+    return req.files as Express.Multer.File[];
+  };
 
   // ------------ routers --------------\\
   public GetUserProfile = async (
@@ -40,7 +47,10 @@ export class UserService {
     const user = this._GetAuthenticatedUser(req);
     return SuccessResponse<any>({ res, message: "good", data: user });
   };
-
+  // ------------------------------------------------
+  // ------------------------------------------------
+  // ------------------------------------------------
+  // ------------ Upload files ------------\\
   public AddUserPhoto = async (
     req: Request,
     res: Response,
@@ -73,8 +83,8 @@ export class UserService {
     if (!result) throw new BadRequstExption("error while setting user photo");
     return SuccessResponse({ res, message: "done", data: result });
   };
-
-  public AddUserCoverImage = async (
+  // ------------------------------------------------
+  public AddUserLargeFile = async (
     req: Request,
     res: Response,
   ): Promise<Response> => {
@@ -113,7 +123,40 @@ export class UserService {
 
     return SuccessResponse<any>({ res, message: "done", data: result });
   };
+  // ------------------------------------------------
+  public AddMultiFiles = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const user = this._GetAuthenticatedUser(req);
+    const files = this._GetAuthorizedMultiFiles(req);
 
+    // call the s3
+    const Keys = await this._AWS_S3.UploadMultiFiles({
+      files,
+      AssetType: "Images",
+      folder: "User",
+      id: user.id,
+    });
+
+    if (!Keys) {
+      throw new BadRequstExption("there is not Keys form s3");
+    }
+    const result = await this._UserRepository.updateOne({
+      filter: { _id: user._id },
+      update: { $push: { CoverImage: Keys } },
+    });
+    if (!result) {
+      throw new BadRequstExption("Error while adding Keys form s3 to user");
+    }
+
+    return SuccessResponse<any>({ res, message: "done", data: result });
+  };
+  // ------------------------------------------------
+  // ------------------------------------------------
+  // ------------------------------------------------
+
+  // ----------------- notifications -----------------\\
   public GetFCM_Token = async (
     req: Request,
     res: Response,
@@ -132,7 +175,7 @@ export class UserService {
       data: { token, result },
     });
   };
-
+  // ------------------------------------------------
   public sendNotification = async (
     req: Request,
     res: Response,
@@ -178,6 +221,9 @@ export class UserService {
       throw new BadRequstExption("error while sending notification", err);
     }
   };
+  // ------------------------------------------------
+  // ------------------------------------------------
+  // ------------------------------------------------
 }
 
 export default new UserService();

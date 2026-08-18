@@ -130,6 +130,41 @@ class S3service {
 
     return (await command.done()).Key;
   }
+
+  public async UploadMultiFiles({
+    files,
+    ContentType,
+    // Access control list (ACL)
+    ACL = ObjectCannedACL.private,
+    StorageAprotche = StorageAprotches.Memory,
+
+    folder,
+    id,
+    AssetType,
+  }: {
+    files: Express.Multer.File[];
+    ContentType?: string;
+    ACL?: ObjectCannedACL;
+    StorageAprotche?: StorageAprotches;
+
+    folder: "User" | "Post";
+    id: string;
+    AssetType: "Profile" | "Cover" | "Images" | "Docs";
+  }): Promise<string[]> {
+    // 1.
+    const Urls: string[] = await Promise.all(
+      files.map((file) => {
+        return this.UploadFile({
+          file,
+          path: s3PathKeyPrefix({ AssetType, file, folder, id }),
+          ACL,
+          ContentType: file.mimetype,
+        });
+      }),
+    );
+
+    return Urls;
+  }
 }
 
 export default new S3service();

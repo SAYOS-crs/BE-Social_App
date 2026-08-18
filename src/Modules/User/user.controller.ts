@@ -35,14 +35,26 @@ router.patch(
 );
 
 router.put(
-  "/addUserCover",
+  "/addUserLargeFile",
   Authentication(TokenType.Access),
   Authorization([Rolle.User]),
   CloudFileUpload({ StorageAprotch: StorageAprotches.Disk }).single(
-    "ImageCover",
+    "LargeFile",
   ),
   FileFilter(AllowedFileTypes.photo),
-  UserService.AddUserCoverImage,
+  UserService.AddUserLargeFile,
+);
+
+router.put(
+  "/AddMultiFiles",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User]),
+  CloudFileUpload({
+    StorageAprotch: StorageAprotches.Memory,
+    maxSize: 20,
+  }).array("image", 3),
+  // FileFilter(AllowedFileTypes.photo),
+  UserService.AddMultiFiles,
 );
 
 router.post(
