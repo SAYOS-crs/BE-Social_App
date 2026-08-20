@@ -81,4 +81,18 @@ router.post(
   UserService.sendNotification,
 );
 
+router.delete(
+  "/DeleteUserAsset",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User, Rolle.Admin]),
+  UserService.Delete_Asset,
+);
+
+router.delete(
+  "/DeleteUserAssets",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User, Rolle.Admin]),
+  UserService.Delete_Assets,
+);
+
 export default router;

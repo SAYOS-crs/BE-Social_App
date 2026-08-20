@@ -15,6 +15,7 @@ import { HUserDocument } from "../../DB/models/User.model";
 // - S3_ReadStream = transform pipeline from callback to async
 import { promisify } from "node:util";
 import { pipeline } from "node:stream";
+import { DeletedObject } from "@aws-sdk/client-s3";
 const S3_ReadStream = promisify(pipeline);
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -236,7 +237,6 @@ export class UserService {
     // return SuccessResponse({ res, message: "done", data: result });
   };
   // ------------------------------------------------------------------------------------------------
-
   public Retrieve_PresignedURL = async (
     req: Request,
     res: Response,
@@ -261,7 +261,72 @@ export class UserService {
   };
   // ------------------------------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------
+  // ------------------------------------- Delete Assets -------------------------------------------\\
+  public Delete_Asset = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const user = this._GetAuthenticatedUser(req);
+    const { Key } = req.body;
+    const DeleteMark = await this._AWS_S3.DeleteAsset({ Key });
+    console.log({ DeleteMark });
+    if (!DeleteMark) {
+      throw new BadRequstExption(
+        "Error while Deleting Asset From AWS S3 User Bucket",
+      );
+    }
+    const result = await this._UserRepository.updateOne({
+      filter: { _id: user._id },
+      update: { $pull: { CoverImage: Key } },
+    });
 
+    return SuccessResponse({
+      res,
+      message: "done",
+      data: { result, DeleteMark },
+    });
+  };
+  // ------------------------------------------------------------------------------------------------
+  public Delete_Assets = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const user = this._GetAuthenticatedUser(req);
+    const { Keys } = req.body as { Keys: string[] };
+
+    if (!Array.isArray(Keys)) {
+      throw new BadRequstExption("Keys must be an Array");
+    }
+
+    const ArrayOfKeys: { Key: string }[] = Keys.map((k) => {
+      return { Key: k };
+    });
+    console.log(ArrayOfKeys);
+
+    const Deleted: DeletedObject[] = await this._AWS_S3.DeleteAssets({
+      Keys: ArrayOfKeys,
+    });
+    console.log({ Deleted });
+    Deleted.map((d) => {
+      if (!d.DeleteMarker) {
+        throw new BadRequstExption(
+          `Error while Deleting Asset From AWS S3 User Bucket , Key that cause Error : ${d.Key} `,
+        );
+      }
+    });
+
+    const result = await this._UserRepository.updateOne({
+      filter: { _id: user._id },
+      update: { $pull: { CoverImage: { $in: Keys } } },
+    });
+
+    return SuccessResponse({ res, message: "done", data: { result, Deleted } });
+  };
+  // ------------------------------------------------------------------------------------------------
+
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
   // ---------------------------------------- notifications -----------------------------------------\\
   public GetFCM_Token = async (
     req: Request,

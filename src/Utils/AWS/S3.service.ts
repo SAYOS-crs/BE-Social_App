@@ -1,6 +1,10 @@
 import {
+  DeletedObject,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   ObjectCannedACL,
+  ObjectIdentifier,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
@@ -248,7 +252,7 @@ class S3service {
 
     return await this.Client.send(command);
   }
-
+  // =======================================================================
   public async Retrieve_PresignedURL({
     Bucket = this.S3_BUCKET_NAME,
     Key,
@@ -273,7 +277,7 @@ class S3service {
         download === "true" ? "attachment" : "inline"
       };
         filename="${targetFilename}"`,
-      // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! Note ! ! ! ! ! ! ! ! ! ! ! ! ! !
+      // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! Note ! ! ! ! ! ! ! ! ! ! ! ! ! ! important Note
       // if the ContentType = undefined it will act as download anyway , so to control it it must be with a value
       // "value" or " " both work
       ResponseContentType: ContentType || "",
@@ -283,6 +287,43 @@ class S3service {
       expiresIn: this.S3_SignedUrl_TTL,
     });
     return Link;
+  }
+  // =======================================================================
+  // =======================================================================
+  // =============================== Delete Assets ========================================
+  public async DeleteAsset({
+    Bucket = this.S3_BUCKET_NAME,
+    Key,
+  }: {
+    Bucket?: string;
+    Key: string;
+  }) {
+    const command = new DeleteObjectCommand({
+      Bucket,
+      Key,
+    });
+    const { DeleteMarker } = await this.Client.send(command);
+
+    return DeleteMarker;
+  }
+
+  public async DeleteAssets({
+    Bucket = this.S3_BUCKET_NAME,
+    Keys,
+  }: {
+    Bucket?: string;
+    Keys: ObjectIdentifier[];
+  }) {
+    const command = new DeleteObjectsCommand({
+      Bucket,
+      Delete: {
+        Objects: Keys,
+        Quiet: false,
+      },
+    });
+    const { Deleted } = await this.Client.send(command);
+
+    return Deleted as DeletedObject[];
   }
 }
 
