@@ -1,4 +1,5 @@
 import {
+  GetObjectCommand,
   ObjectCannedACL,
   PutObjectCommand,
   PutObjectCommandInput,
@@ -190,7 +191,7 @@ class S3service {
    * 5. [CLIENT] Directly sends HTTP `PUT` request to `link` with raw file binary in body.
    * 6. [AWS S3] Verifies signature, expiration, and headers; stores object directly in S3.
    */
-  public async PresignedURL({
+  public async Upload_PresignedURL({
     Bucket = this.S3_BUCKET_NAME,
     folder,
     id,
@@ -227,6 +228,61 @@ class S3service {
     // - `Key`: Relative S3 path to store in database for future retrieval/deletion
     // - `link`: The signed URL for the frontend/client to execute direct HTTP PUT
     return { Key: command.input.Key, link };
+  }
+
+  // =======================================================================
+  // =======================================================================
+  // =============================== Retrieve Assets ========================================
+
+  public async RetrieveAsset({
+    Bucket = this.S3_BUCKET_NAME,
+    Key,
+  }: {
+    Bucket?: string;
+    Key: string;
+  }) {
+    const command = new GetObjectCommand({
+      Bucket,
+      Key,
+    });
+
+    return await this.Client.send(command);
+  }
+
+  public async Retrieve_PresignedURL({
+    Bucket = this.S3_BUCKET_NAME,
+    Key,
+    filename,
+    path,
+    download = undefined,
+    ContentType,
+  }: {
+    Bucket?: string;
+    Key: string;
+    filename?: string;
+    path: string[];
+    download?: string | undefined;
+    ContentType?: string;
+  }) {
+    const targetFilename = filename || path[path.length - 1];
+
+    const command = new GetObjectCommand({
+      Bucket,
+      Key,
+      ResponseContentDisposition: `${
+        download === "true" ? "attachment" : "inline"
+      };
+        filename="${targetFilename}"`,
+      // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! Note ! ! ! ! ! ! ! ! ! ! ! ! ! !
+      // if the ContentType = undefined it will act as download anyway , so to control it it must be with a value
+      // "value" or " " both work
+      ResponseContentType: ContentType || "",
+    });
+
+    const Link = await getSignedUrl(this.Client, command, {
+      expiresIn: this.S3_SignedUrl_TTL,
+    });
+    return Link;
   }
 }
 

@@ -10,8 +10,23 @@ import {
   UnAuthroizedExption,
 } from "../../Utils";
 import { HUserDocument } from "../../DB/models/User.model";
-import mongoose, { Types } from "mongoose";
 
+// ------------------ tools ---------------\\
+// - S3_ReadStream = transform pipeline from callback to async
+import { promisify } from "node:util";
+import { pipeline } from "node:stream";
+const S3_ReadStream = promisify(pipeline);
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// -
+const S3_RetrieveKeyFromParams = (
+  req: Request,
+): { Key: string; path: string[] } => {
+  const { path } = req.params as { path: string[] };
+  const Key = path.join("/");
+  return { Key, path };
+};
+// -----------------------------------------\\
 export class UserService {
   private _NotificationService = NotificationService;
   private _UserRepository = new UserRepository();
@@ -39,7 +54,7 @@ export class UserService {
     return req.files as Express.Multer.File[];
   };
 
-  // ------------ routers --------------\\
+  // ---------------------------------------- routers ----------------------------------------\\
   public GetUserProfile = async (
     req: Request,
     res: Response,
@@ -47,10 +62,10 @@ export class UserService {
     const user = this._GetAuthenticatedUser(req);
     return SuccessResponse<any>({ res, message: "good", data: user });
   };
-  // ------------------------------------------------
-  // ------------------------------------------------
-  // ------------------------------------------------
-  // ------------ Upload files ------------\\
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ---------------------------------------- Upload Assets ----------------------------------------
   public AddUserPhoto = async (
     req: Request,
     res: Response,
@@ -84,7 +99,7 @@ export class UserService {
     if (!result) throw new BadRequstExption("error while setting user photo");
     return SuccessResponse({ res, message: "done", data: result });
   };
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
   public AddUserLargeFile = async (
     req: Request,
     res: Response,
@@ -124,7 +139,7 @@ export class UserService {
 
     return SuccessResponse<any>({ res, message: "done", data: result });
   };
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
   public AddMultiFiles = async (
     req: Request,
     res: Response,
@@ -153,7 +168,7 @@ export class UserService {
 
     return SuccessResponse<any>({ res, message: "done", data: result });
   };
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
   /**
    * Generates a temporary Presigned URL for direct client-to-S3 uploads.
    *
@@ -174,7 +189,7 @@ export class UserService {
     const { ContentType, Originalname } = req.body;
 
     // STEP 3: Generate the time-limited presigned S3 PUT URL and object Key
-    const payload = await this._AWS_S3.PresignedURL({
+    const payload = await this._AWS_S3.Upload_PresignedURL({
       AssetType: "Profile",
       ContentType,
       Originalname,
@@ -191,11 +206,63 @@ export class UserService {
     // STEP 5: Send response containing `{ link, Key }` to client for direct upload
     return SuccessResponse<any>({ res, data: { payload, result } });
   };
-  // ------------------------------------------------
-  // ------------------------------------------------
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ---------------------------------- Retrieve & Download Assets ----------------------------------\\
+  public getUserAsset = async (req: Request, res: Response) => {
+    const { filename, download } = req.query;
+    // 1. get assets key form params : its come sapert apart so its must join them.
+    const { path, Key } = S3_RetrieveKeyFromParams(req);
+    // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
+    // 2. get the assets by Key , and distruct the body , the body is stream data
+    const { Body, ContentType } = await this._AWS_S3.RetrieveAsset({ Key });
+    // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
+    // 3. set the headers
+    // - cors header
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    // - download header if true it will download the assets
+    if (download === "true") {
+      // - Content-type header
+      res.setHeader("Content-Type", ContentType || "application/octet-stream");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename || path[path.length - 1]}"`,
+      );
+    }
+    // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
 
-  // ----------------- notifications -----------------\\
+    // 4. using S3_ReadStream method we created bass it the stream as ReadableStream and the distnation and will be Response and its automatic detect the res.pip and pass the stream when finish to it.
+    S3_ReadStream(Body as NodeJS.ReadableStream, res);
+    // return SuccessResponse({ res, message: "done", data: result });
+  };
+  // ------------------------------------------------------------------------------------------------
+
+  public Retrieve_PresignedURL = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const { filename, download, ContentType } = req.query as {
+      filename: string;
+      download: string;
+      ContentType: string;
+    };
+    console.log(filename, download, ContentType);
+    // note : ContentType is optional becz if its = undefined that will mean download any way even if download= false,
+
+    const { path, Key } = S3_RetrieveKeyFromParams(req);
+    const Link = await this._AWS_S3.Retrieve_PresignedURL({
+      Key,
+      path,
+      filename,
+      download,
+      ContentType,
+    });
+    return SuccessResponse<any>({ res, message: "done", data: { Link } });
+  };
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+
+  // ---------------------------------------- notifications -----------------------------------------\\
   public GetFCM_Token = async (
     req: Request,
     res: Response,
@@ -260,9 +327,9 @@ export class UserService {
       throw new BadRequstExption("error while sending notification", err);
     }
   };
-  // ------------------------------------------------
-  // ------------------------------------------------
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
 }
 
 export default new UserService();

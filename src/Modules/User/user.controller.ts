@@ -34,6 +34,9 @@ router.patch(
   UserService.AddUserPhoto,
 );
 
+router.get("/getUserAsset/*path", UserService.getUserAsset);
+router.get("/RetrievePresignedURL/*path", UserService.Retrieve_PresignedURL);
+
 router.put(
   "/addUserLargeFile",
   Authentication(TokenType.Access),
@@ -52,7 +55,7 @@ router.put(
   CloudFileUpload({
     StorageAprotch: StorageAprotches.Memory,
     maxSize: 20,
-  }).array("image", 3),
+  }).array("images", 3),
   // FileFilter(AllowedFileTypes.photo),
   UserService.AddMultiFiles,
 );
