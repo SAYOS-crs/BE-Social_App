@@ -63,6 +63,28 @@ export class UserService {
     const user = this._GetAuthenticatedUser(req);
     return SuccessResponse<any>({ res, message: "good", data: user });
   };
+  public DeleteUserProfile = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const user = this._GetAuthenticatedUser(req);
+
+    const DeletedUser = await this._UserRepository.DeleteOne({ _id: user._id });
+    let DeletedAssets;
+    if (DeletedUser.CoverImage?.length || DeletedUser.UserImage) {
+      DeletedAssets = await this._AWS_S3.DeleteAssetsByPrefix({
+        folder: "User",
+        id: user.id,
+      });
+    }
+    console.log(DeletedAssets);
+
+    return SuccessResponse({
+      res,
+      message: "User Deleted successfly",
+      data: { DeletedUser, DeletedAssets },
+    });
+  };
   // ------------------------------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------

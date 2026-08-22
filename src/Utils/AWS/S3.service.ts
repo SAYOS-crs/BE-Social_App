@@ -3,6 +3,8 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
   ObjectCannedACL,
   ObjectIdentifier,
   PutObjectCommand,
@@ -252,6 +254,19 @@ class S3service {
 
     return await this.Client.send(command);
   }
+  public async RetrieveAssets({
+    Bucket = this.S3_BUCKET_NAME,
+    Prefix,
+  }: {
+    Bucket?: string;
+    Prefix: string;
+  }) {
+    const command = new ListObjectsV2Command({
+      Bucket,
+      Prefix,
+    });
+    return await this.Client.send(command);
+  }
   // =======================================================================
   public async Retrieve_PresignedURL({
     Bucket = this.S3_BUCKET_NAME,
@@ -306,14 +321,14 @@ class S3service {
 
     return DeleteMarker;
   }
-
+  // =======================================================================
   public async DeleteAssets({
     Bucket = this.S3_BUCKET_NAME,
     Keys,
   }: {
     Bucket?: string;
     Keys: ObjectIdentifier[];
-  }) {
+  }): Promise<DeletedObject[]> {
     const command = new DeleteObjectsCommand({
       Bucket,
       Delete: {
@@ -321,9 +336,49 @@ class S3service {
         Quiet: false,
       },
     });
-    const { Deleted } = await this.Client.send(command);
+    const result = await this.Client.send(command);
+    if (!result.Deleted) {
+      throw new BadRequstExption(
+        "Error while Deleting Assets , returned :- ",
+        result,
+      );
+    }
+    return result.Deleted;
+  }
+  // =======================================================================
 
-    return Deleted as DeletedObject[];
+  public async DeleteAssetsByPrefix({
+    folder,
+    id,
+  }: {
+    folder: "User" | "Post";
+    id: string;
+  }) {
+    // step 1 : get Assets
+    console.log(`${this.S3_BUCKET_NAME}/${folder}/${id}`);
+
+    const Assets = await this.RetrieveAssets({
+      Prefix: `${this.S3_BUCKET_NAME}/${folder}/${id}`,
+    });
+    if (!Assets.Contents) {
+      throw new BadRequstExption("Error while Retrieve Assets", Assets);
+    }
+    // step 2 : get Assets Keys as [ {Key:...} , {Key:...} , {Key:...} ]
+    const Keys: { Key: string }[] = Assets.Contents.map((content) => {
+      return { Key: content.Key as string };
+    });
+    // step 3 : call DeleteAssets Methods that take Keys
+    const Deleted = await this.DeleteAssets({
+      Keys,
+    });
+    if (!Deleted) {
+      throw new BadRequstExption(
+        "Error While Deleting Assets , returned :-",
+        Deleted,
+      );
+    }
+    // return result
+    return Deleted;
   }
 }
 

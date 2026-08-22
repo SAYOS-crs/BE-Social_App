@@ -10,6 +10,8 @@ import mongoose, {
   SaveOptions,
   UpdateQuery,
 } from "mongoose";
+import { BadRequstExption } from "../Utils";
+import { ReplicationRuleAndOperator$ } from "@aws-sdk/client-s3";
 
 export class BaseRepository<Tdocment> {
   constructor(protected readonly model: Model<Tdocment>) {}
@@ -109,5 +111,13 @@ export class BaseRepository<Tdocment> {
       { ...update, $inc: { __v: 1 } },
       { ...options, runValidators: true },
     );
+  }
+  // /*/*/*/*/*/*/*/*/*/*/*/* delete methods
+  async DeleteOne(filter: QueryFilter<Tdocment>) {
+    const result = await this.model.findOneAndDelete(filter);
+    if (!result) {
+      throw new BadRequstExption("Error While Deleteing", result);
+    }
+    return result;
   }
 }

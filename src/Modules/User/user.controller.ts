@@ -95,4 +95,11 @@ router.delete(
   UserService.Delete_Assets,
 );
 
+router.delete(
+  "/",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User, Rolle.Admin]),
+  UserService.DeleteUserProfile,
+);
+
 export default router;
