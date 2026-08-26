@@ -4,7 +4,6 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   ListObjectsV2Command,
-  ListObjectsV2CommandOutput,
   ObjectCannedACL,
   ObjectIdentifier,
   PutObjectCommand,
@@ -19,7 +18,6 @@ import {
   S3_SignedUrl_TTL,
 } from "../../Config/config";
 import { StorageAprotches } from "../Enums";
-import { Schema } from "mongoose";
 import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
 import { Upload } from "@aws-sdk/lib-storage";

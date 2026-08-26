@@ -120,6 +120,10 @@ UserSchema.virtual("username")
   .get(function () {
     return `${this.firstName} ${this.lastName}`;
   });
+//
+//
+//
+//
 // decment middleware that hash the passowrd before save the doc.
 UserSchema.pre(
   "save",
