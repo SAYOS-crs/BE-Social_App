@@ -68,9 +68,10 @@ export class UserService {
     res: Response,
   ): Promise<Response> => {
     const user = this._GetAuthenticatedUser(req);
-
+    // step 1 : delete user
     const DeletedUser = await this._UserRepository.DeleteOne({ _id: user._id });
     let DeletedAssets;
+    // step 2 : check if the user have assets / true = delete this assets using DeleteAssetsByPrefix form aws
     if (DeletedUser.CoverImage?.length || DeletedUser.UserImage) {
       DeletedAssets = await this._AWS_S3.DeleteAssetsByPrefix({
         folder: "User",
@@ -78,7 +79,7 @@ export class UserService {
       });
     }
     console.log(DeletedAssets);
-
+    // step 3 :return deleted user and assets
     return SuccessResponse({
       res,
       message: "User Deleted successfly",
@@ -192,20 +193,21 @@ export class UserService {
     return SuccessResponse<any>({ res, message: "done", data: result });
   };
   // ------------------------------------------------------------------------------------------------
-  /**
-   * Generates a temporary Presigned URL for direct client-to-S3 uploads.
-   *
-   * WORKFLOW STEPS:
-   * 1. Extract authenticated user context from token/session.
-   * 2. Receive file metadata (`ContentType`, `Originalname`) from request body.
-   * 3. Request S3 service to generate a signed PUT URL for the designated path.
-   * 4. Record/reserve the S3 object Key in the user database record.
-   * 5. Respond to client with `{ link, Key }` so client can PUT raw file to S3.
-   */
   public PresignedURL = async (
     req: Request,
     res: Response,
   ): Promise<Response> => {
+    /**
+     * Generates a temporary Presigned URL for direct client-to-S3 uploads.
+     *
+     * WORKFLOW STEPS:
+     * 1. Extract authenticated user context from token/session.
+     * 2. Receive file metadata (`ContentType`, `Originalname`) from request body.
+     * 3. Request S3 service to generate a signed PUT URL for the designated path.
+     * 4. Record/reserve the S3 object Key in the user database record.
+     * 5. Respond to client with `{ link, Key }` so client can PUT raw file to S3.
+     */
+
     // STEP 1: Get the authenticated user ID
     const user = this._GetAuthenticatedUser(req);
     // STEP 2: Extract file metadata provided by client (no binary payload here)
@@ -269,7 +271,7 @@ export class UserService {
       ContentType: string;
     };
     console.log(filename, download, ContentType);
-    // note : ContentType is optional becz if its = undefined that will mean download any way even if download= false,
+    // note : ContentType is optional becz if its = undefined that will mean download it anyway even if download= false,
 
     const { path, Key } = S3_RetrieveKeyFromParams(req);
     const Link = await this._AWS_S3.Retrieve_PresignedURL({
@@ -368,7 +370,7 @@ export class UserService {
       data: { token, result },
     });
   };
-  // ------------------------------------------------
+  // ------------------------------------------------------------------------------------------------
   public sendNotification = async (
     req: Request,
     res: Response,

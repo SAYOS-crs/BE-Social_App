@@ -2,6 +2,7 @@ import { getMessaging } from "firebase-admin/messaging";
 import { BadRequstExption } from "../response";
 import FireBaseApp from "./notification.config";
 class NotificationService {
+  // ---------- send single notification
   async SendNotification({
     fcm_token,
     data,
@@ -19,7 +20,11 @@ class NotificationService {
       throw new BadRequstExption("Error while sending notoification", err);
     }
   }
-
+  // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // -------------------------------------------------------------
+  // ------------ send multieble notification
   async SendNotifications({
     fcm_tokens,
     data,
