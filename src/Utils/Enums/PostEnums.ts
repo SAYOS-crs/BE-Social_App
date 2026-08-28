@@ -1,5 +1,5 @@
 export enum VisibilityEnum {
-  Public,
-  Private,
-  Frends,
+  Public = "Public",
+  Private = "Private",
+  Frends = "Frends",
 }

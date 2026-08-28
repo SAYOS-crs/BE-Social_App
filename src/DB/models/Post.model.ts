@@ -11,15 +11,15 @@ interface IPost {
   attachments: string[];
   visibility: PostEnum.VisibilityEnum;
   // ---- fileId > id of attachments s3 bucket
-  fileId: string;
+  fileId?: string;
   // ---- post / users actions to post
-  tags: Types.ObjectId[] | IUser;
-  likes: Types.ObjectId[] | IUser;
+  tags?: Types.ObjectId[] | IUser;
+  likes?: Types.ObjectId[] | IUser;
   // ---- actions By
-  CreatedBy: Types.ObjectId | IUser;
+  CreatedBy?: Types.ObjectId | IUser;
   DeletedBy?: Types.ObjectId | IUser;
   // ---- actions At
-  CreatedAt: Date;
+  CreatedAt?: Date;
   UpdatedAt?: Date;
   DeletedAt?: Date;
 }
@@ -41,7 +41,7 @@ const PostSchema = new Schema<HPostDocemnt>(
       },
     },
     visibility: {
-      type: Number,
+      type: String,
       enum: PostEnum.VisibilityEnum,
       default: PostEnum.VisibilityEnum.Public,
     },
