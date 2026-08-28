@@ -17,7 +17,7 @@ import {
   S3_SECRET_KEY,
   S3_SignedUrl_TTL,
 } from "../../Config/config";
-import { StorageAprotches } from "../Enums";
+import { AwsEnum, StorageAprotches } from "../Enums";
 import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -29,9 +29,9 @@ export const s3PathKeyPrefix = ({
   AssetType,
   file,
 }: {
-  folder: "User" | "Post";
+  folder: AwsEnum.FolderType;
   id: string;
-  AssetType: "Profile" | "Cover" | "Images" | "Docs";
+  AssetType: AwsEnum.AssetType;
   file: Express.Multer.File;
 }): string => {
   return `${folder}/${id.toString()}/${AssetType}/${Date.now()}-${file.originalname}`;
@@ -156,9 +156,9 @@ class S3service {
     ACL?: ObjectCannedACL;
     StorageAprotche?: StorageAprotches;
 
-    folder: "User" | "Post";
+    folder: AwsEnum.FolderType;
     id: string;
-    AssetType: "Profile" | "Cover" | "Images" | "Docs";
+    AssetType: AwsEnum.AssetType;
   }): Promise<string[]> {
     // 1.
     const Urls: string[] = await Promise.all(
@@ -206,7 +206,7 @@ class S3service {
   }: {
     Bucket?: string;
     ContentType: string;
-    folder: "User" | "Post";
+    folder: AwsEnum.FolderType;
     id: string;
     AssetType: "Profile" | "Cover" | "Images" | "Docs";
     Originalname: string;

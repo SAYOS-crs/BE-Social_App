@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import UserRepository from "../../DB/Repository/User.Repository";
 import {
   AWS_SERVICE,
+  AwsEnum,
   BadRequstExption,
   NotificationService,
   s3PathKeyPrefix,
@@ -97,12 +98,14 @@ export class UserService {
     const user = this._GetAuthenticatedUser(req);
     const file = this._GetAuthorizedFile(req);
     // -------------------------------------------------------
+    console.log(file);
+
     const Key = await this._AWS_S3.UploadFile({
       file,
       path: s3PathKeyPrefix({
-        AssetType: "Profile",
+        AssetType: AwsEnum.AssetType.Profile,
         file,
-        folder: "User",
+        folder: AwsEnum.FolderType.User,
         id: user.id,
       }),
     });
@@ -137,9 +140,9 @@ export class UserService {
     const Key = await this._AWS_S3.UploadLargeFiles({
       file: file,
       path: s3PathKeyPrefix({
-        AssetType: "Cover",
+        AssetType: AwsEnum.AssetType.Cover,
         file: file,
-        folder: "User",
+        folder: AwsEnum.FolderType.User,
         id: user.id,
       }) as string,
       ContentType: file.mimetype as string,
@@ -174,8 +177,8 @@ export class UserService {
     // call the s3
     const Keys = await this._AWS_S3.UploadMultiFiles({
       files,
-      AssetType: "Images",
-      folder: "User",
+      AssetType: AwsEnum.AssetType.Images,
+      folder: AwsEnum.FolderType.User,
       id: user.id,
     });
 
@@ -218,7 +221,7 @@ export class UserService {
       AssetType: "Profile",
       ContentType,
       Originalname,
-      folder: "User",
+      folder: AwsEnum.FolderType.User,
       id: user.id,
     });
 
