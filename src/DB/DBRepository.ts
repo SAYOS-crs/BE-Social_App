@@ -11,7 +11,6 @@ import mongoose, {
   UpdateQuery,
 } from "mongoose";
 import { BadRequstExption } from "../Utils";
-import { ReplicationRuleAndOperator$ } from "@aws-sdk/client-s3";
 
 export class BaseRepository<Tdocment> {
   constructor(protected readonly model: Model<Tdocment>) {}

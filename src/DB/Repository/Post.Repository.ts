@@ -1,7 +1,7 @@
 import { BaseRepository } from "../DBRepository";
-import { HPostDocemnt, PostModel } from "../models/Post.model";
+import { IPost, PostModel } from "../models/Post.model";
 
-export default class PostRepository extends BaseRepository<HPostDocemnt> {
+export default class PostRepository extends BaseRepository<IPost> {
   constructor() {
     super(PostModel);
   }

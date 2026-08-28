@@ -5,38 +5,39 @@ import { PostEnum } from "../../Utils";
 // ------------------------------ Post Model ------------------------------\\
 
 // step 1 : create intercafe
-interface IPost {
+export interface IPost {
   // ---- post content
-  content?: string;
-  attachments: string[];
-  visibility: PostEnum.VisibilityEnum;
+  content?: string | undefined;
+  attachments?: string[] | undefined;
+  visibility?: PostEnum.VisibilityEnum | undefined;
   // ---- fileId > id of attachments s3 bucket
-  fileId?: string;
+  fileId?: string | undefined;
   // ---- post / users actions to post
-  tags?: Types.ObjectId[] | IUser;
-  likes?: Types.ObjectId[] | IUser;
+  tags?: string[] | IUser | string | undefined;
+  likes?: string[] | IUser | string | undefined;
   // ---- actions By
-  CreatedBy?: Types.ObjectId | IUser;
-  DeletedBy?: Types.ObjectId | IUser;
+  CreatedBy: Types.ObjectId | IUser | string;
+  DeletedBy?: Types.ObjectId | IUser | string | undefined;
   // ---- actions At
   CreatedAt?: Date;
-  UpdatedAt?: Date;
-  DeletedAt?: Date;
+  UpdatedAt?: Date | undefined;
+  DeletedAt?: Date | undefined;
 }
-export type HPostDocemnt = mongoose.HydratedDocument<IPost>;
+export type HPostDocument = mongoose.HydratedDocument<IPost>;
+
 // step 2 : create model Schema
-const PostSchema = new Schema<HPostDocemnt>(
+const PostSchema = new Schema<IPost>(
   {
     content: {
       type: String,
-      required: function (this) {
-        return !this.attachments.length;
+      required: function (this: HPostDocument) {
+        return !this.attachments?.length;
       },
     },
     attachments: {
       type: [String],
       max: [3, "max post attachment : 3 "],
-      required: function (this) {
+      required: function (this: HPostDocument) {
         return !this.content;
       },
     },
@@ -50,10 +51,12 @@ const PostSchema = new Schema<HPostDocemnt>(
     likes: {
       type: [String],
       ref: "User",
+      required: false,
     },
     tags: {
       type: [String],
       ref: "User",
+      required: false,
     },
     //
     CreatedBy: Types.ObjectId,
@@ -73,4 +76,4 @@ const PostSchema = new Schema<HPostDocemnt>(
   },
 );
 
-export const PostModel = mongoose.model<HPostDocemnt>("Post", PostSchema);
+export const PostModel = mongoose.model<IPost>("Post", PostSchema);

@@ -61,4 +61,27 @@ Whenever asked to document a task in the Obsidian Vault (`/home/sayos/Documents/
 4. **Summary Checklist**:
    - A final bulleted checklist (`- [x]`) confirming all requirements, safety checks, and modular exports.
 
+## 6. Multi-File & Buffer Validation Pattern (Magic Numbers & Zod)
+- **File Gateway in Validation Middleware**: To enable Zod validation of uploaded files, the validation middleware attaches `req.files` to `req.body.files` before evaluating the body schema.
+- **Multi-File Magic Numbers (`FileFilter`)**:
+  - Handles both `req.file` and `req.files`.
+  - Converts file path or buffer into a buffer stream, inspects real MIME type via `fileTypeFromBuffer`, and collects any disallowed types into an `inValidTypes` array.
+  - Throws `ConflictExption` with details of all disallowed types found.
+
+## 7. Zod ObjectId & Flexible Array Refinement
+- **Union Types for Form-Data Arrays**: When receiving form-data where arrays may arrive as a single string or an array of strings, use `z.union([z.array(z.string()), z.string()])`.
+- **Duplicate & ObjectId Verification**: Use `superRefine` with a helper (e.g. `CustomValidate`) to:
+  1. Deduplicate items (`[...new Set(field)]`) and ensure no duplicates were submitted.
+  2. Verify all entries are valid MongoDB ObjectIds via `Types.ObjectId.isValid()`.
+
+## 8. Atomic Git Commit Conventions
+- When performing multi-feature or multi-layer changes, separate them into granular commits:
+  1. **Enums & Constants** (`feat:` / `modify:`)
+  2. **Security & Utilities** (e.g. `enhance: multi file validation handeld`)
+  3. **General Validation Fields** (e.g. `modify: post fileds added`)
+  4. **Middlewares** (e.g. `enhance: file getway form body handeld`)
+  5. **Feature Vertical Slice** (Model, Schema, DTO, Service, Controller)
+  6. **Cross-Service Refactors** (`refactor:`)
+
+
 

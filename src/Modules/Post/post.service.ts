@@ -3,14 +3,13 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
-  S3service,
   SuccessResponse,
   UnAuthroizedExption,
 } from "../../Utils";
 import { randomUUID } from "node:crypto";
 import { PostRepository } from "../../DB/Repository";
 import { HUserDocument } from "../../DB/models/User.model";
-import { ObjectIdentifier } from "@aws-sdk/client-s3";
+import { I_CreatePost_dto } from "./post.dto";
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -45,7 +44,8 @@ class PostService {
     //  * =====> step 1 : collect the docu data
     // get user by user Guard
     const user = this._GetAuthenticatedUser(req);
-    const { content, files, visibility, tags, likes } = req.body;
+    let { content, files, visibility, tags, likes }: I_CreatePost_dto =
+      req.body;
     // create fileId
     const fileId = randomUUID();
     // log check
@@ -55,10 +55,11 @@ class PostService {
     //
     //
     //  * =====> step 2 : Upload Assets via S3
+
     const s3_r = await this._AWS_S3.UploadMultiFiles({
       AssetType: AwsEnum.AssetType.attachments,
       folder: AwsEnum.FolderType.Post,
-      files,
+      files: files as Express.Multer.File[],
       id: fileId,
     });
     // log check
@@ -69,6 +70,7 @@ class PostService {
     //
     //
     //  * =====> step 3 : Create Post document via PostRepository
+
     const result = await this._PostRepository.Create({
       data: {
         content,
@@ -98,7 +100,11 @@ class PostService {
       });
     }
 
-    return SuccessResponse<any>({ res, message: "done", data: result });
+    return SuccessResponse<typeof result>({
+      res,
+      message: "done",
+      data: result,
+    });
   };
 }
 
