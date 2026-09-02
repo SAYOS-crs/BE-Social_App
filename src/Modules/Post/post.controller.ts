@@ -13,7 +13,10 @@ import {
   TokenType,
 } from "../../Utils";
 import Validation from "../../Middlewares/Validation.middleware";
-import PostValidationSchema from "./post.validation";
+import {
+  PostValidationSchema,
+  RetrievePostValidationSchema,
+} from "./post.validation";
 
 const router: Router = Router();
 
@@ -28,6 +31,14 @@ router.post(
   FileFilter(AllowedFileTypes.photo),
   Validation(PostValidationSchema),
   postService.createPost,
+);
+
+router.get(
+  "/{:id}",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User, Rolle.Admin]),
+  Validation(RetrievePostValidationSchema),
+  postService.retrievePosts,
 );
 
 export default router;

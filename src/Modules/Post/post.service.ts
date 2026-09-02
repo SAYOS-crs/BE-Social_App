@@ -10,8 +10,14 @@ import {
 import { randomUUID } from "node:crypto";
 import { PostRepository, UserRepository } from "../../DB/Repository";
 import { HUserDocument, IUser } from "../../DB/models/User.model";
-import { I_CreatePost_dto } from "./post.dto";
+import {
+  I_CreatePost_dto,
+  I_RetrievePost_params_dto,
+  I_RetrievePost_query_dto,
+} from "./post.dto";
 import { HPostDocument, IPost } from "../../DB/models/Post.model";
+import { Types } from "mongoose";
+import { number } from "zod/v3";
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -125,7 +131,7 @@ class PostService {
       })
       .flat();
     // taggedUsers_FCM_Tokens will return (array of array of fcm !) => [ [fcm1 , fcm2 ,fcm3] , [fcm1 , fcm2 ,fcm3],... ]
-    // -- but the << .flat(); >> will spread all the sup arrays in one array or
+    // -- but the << .flat(); >> will spread all the sup arrays in one array or        ! important note !!!!
     // -- The flat() method creates a new array with all sub-array elements concatenated into it automatically.
     // after using flat() taggedUsers_FCM_Tokens will return  =>> [fcm1 , fcm2 ,fcm3 , ...]
     //
@@ -157,6 +163,52 @@ class PostService {
       res,
       message: "post created successfly",
       data: result,
+    });
+  };
+
+  public retrievePosts = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const { id }: Partial<I_RetrievePost_params_dto> = req.params;
+    const { limit = 10, page = 1 }: Partial<I_RetrievePost_query_dto> =
+      req.query;
+    // limit is alwayes = 10
+    // page is always = 1 > to decremnt it by 1 so if it = (2 - 1 = 1) * (10 limit) = 10 skip
+    const skip = (limit as number) * ((page as number) - 1);
+    // page must be decremnt by -1  ? to make the count from 1 not 0
+    console.log(skip);
+
+    const result: IPost | IPost[] = await this._PostRepository.find({
+      filter: id ? new Types.ObjectId(id) : undefined,
+      // undefined = posts
+      // new Types.ObjectId(id) = one post by id
+      options: {
+        skip: skip as number,
+        // page = 1 that mean skip = 0
+        // page = 2 that mean skip = 10
+        limit: limit as number,
+      },
+    });
+
+    return SuccessResponse<any>({
+      res,
+      message: "done",
+      data: {
+        result,
+        count: (result as []).length,
+        // posts count
+        Page_Number: (result as []).length > 1 ? (page as number) : undefined,
+        // page number
+        from: (result as []).length > 1 ? skip : undefined,
+        // starting point
+        to:
+          (result as []).length > 1 ? skip + (result as []).length : undefined,
+        // end point = skip (the start ) + post count (how musth forward)
+        //
+        //
+        // (result as []).length > 1 ? ... : undefined  >>> for if the result was one doc
+      },
     });
   };
 }

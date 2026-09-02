@@ -22,6 +22,28 @@ export class BaseRepository<Tdocment> {
     return await this.model.exists(filter);
   }
 
+  async find({
+    filter,
+    selection,
+    options,
+  }: {
+    filter?: QueryFilter<Tdocment> | undefined;
+    selection?: ProjectionType<Tdocment> | undefined;
+    options?: QueryOptions<Tdocment> | undefined;
+  }): Promise<Tdocment | Tdocment[]> {
+    const doc = this.model.find(filter);
+    if (selection) {
+      doc.select(selection);
+    }
+    if (options?.skip) {
+      doc.skip(options.skip);
+    }
+    if (options?.limit) {
+      doc.limit(options.limit);
+    }
+    return await doc.exec();
+  }
+
   async findOne({
     filter,
     selection,

@@ -1,11 +1,15 @@
 import * as z from "zod";
 import { PostEnum } from "../Enums";
+import { Types } from "mongoose";
 
 /**
  * General reusable Zod fields for validation across all modules.
  * Import these fields to compose schemas instead of duplicating validation logic.
  */
 export const GeneralFields = {
+  id: z
+    .string()
+    .refine((v) => Types.ObjectId.isValid(v), { error: "id in not valid" }),
   Email: z
     .string({ message: "Email is required" })
     .email("Invalid email format")

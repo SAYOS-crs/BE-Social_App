@@ -39,7 +39,7 @@ When adding custom properties (such as `req.user` or `req.decoded`) to the Expre
 - **Conventional commit messages**: Use the `feat:` / `fix:` / `refactor:` prefix convention with a descriptive subject line and bullet-point body listing specific changes.
 
 ## 5. Obsidian Task Documentation Standard (The Gold Standard)
-Whenever asked to document or explain a module, model, or architectural task in the Obsidian Vault (`/media/CR-004/MERN/Docs/Obsidian_BackEnd-Documentation/`):
+Whenever asked to document or explain a module, model, or architectural task in the Obsidian Vault (`/home/sayos/MERN/Docs/Obsidian_BackEnd-Documentation/`):
 
 1. **Modular Dedicated Files Organization**:
    - `00 - <Module> Master Index.md`: High-level architecture flowchart, table of contents, and overview.
@@ -49,6 +49,11 @@ Whenever asked to document or explain a module, model, or architectural task in 
    - `04 - <Module> Service & Business Logic.md`: Lifecycle execution, third-party integrations (S3 / FCM / Mailer), repository interactions, rollback / fallback mechanisms, and success responses.
 
 2. **Core Explanation Principles (Zero-Assumption & High Fidelity)**:
+   - **Generalization & Multi-Scenario Explanation (الشرح بالحالة العامة والأنماط الهندسية)**:
+     - DO NOT confine the explanation of a method, property, or element to the narrow localized code snippet where it appears.
+     - Explain the general concept, underlying pattern, and architectural purpose first (how it works across various backend scenarios).
+     - Then, demonstrate how it specifically solves the current scenario in the project.
+     - This ensures the documentation serves as an extensible, permanent reference across multiple different scenarios in the future.
    - **Start from Absolute Scratch**: Explain "Why" before "How", third-party dashboard setup (S3 buckets, IAM, policies), and terminal installation commands (`npm i ...`).
    - **Target Audience Mindset**: Write as if the developer is returning after a long break and has forgotten the details—explain every decision, guard, and step cleanly and logically.
    - **Code Comments as Source of Truth**: Deeply inspect and extract all developer inline comments, parameter definitions, fallback mechanisms, and edge-case guards from the codebase.

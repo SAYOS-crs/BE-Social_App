@@ -54,7 +54,7 @@ function CustomValidate(
   }
 }
 
-const PostValidationSchema = {
+export const PostValidationSchema = {
   body: z
     .strictObject({
       content: GeneralFields.content.optional(),
@@ -114,4 +114,14 @@ const PostValidationSchema = {
       }
     }),
 };
-export default PostValidationSchema;
+
+export const RetrievePostValidationSchema = {
+  params: z.strictObject({
+    id: GeneralFields.id.optional(),
+  }),
+
+  query: z.strictObject({
+    page: z.coerce.number().optional(),
+    limit: z.coerce.number().optional(),
+  }),
+};
