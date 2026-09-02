@@ -7,12 +7,12 @@ import { NotFoundExption } from "./Utils";
 import chalk from "chalk";
 import { UserRouter } from "./Modules/User";
 import { PostRouter } from "./Modules/Post";
-
+import cors from "cors";
 export default async function bootstrap() {
   const app: Express = express();
   // globale middlewares
   app.use(express.json());
-
+  app.use(cors());
   //DB connections :
   ConnectMongooseDB();
   ConnectRedisDB();

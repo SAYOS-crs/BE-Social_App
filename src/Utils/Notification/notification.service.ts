@@ -31,12 +31,16 @@ class NotificationService {
   }: {
     fcm_tokens: string[];
     data: { title: string; body: string };
-  }) {
-    return await Promise.allSettled(
-      fcm_tokens.map((token) => {
-        return this.SendNotification({ fcm_token: token, data });
-      }),
-    );
+  }): Promise<any> {
+    try {
+      return await Promise.allSettled(
+        fcm_tokens.map((token) => {
+          return this.SendNotification({ fcm_token: token, data });
+        }),
+      );
+    } catch (err) {
+      throw new BadRequstExption("error while sending notifications", err);
+    }
   }
 }
 
