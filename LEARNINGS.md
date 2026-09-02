@@ -38,28 +38,35 @@ When adding custom properties (such as `req.user` or `req.decoded`) to the Expre
 - **Atomic commits by feature**: When multiple features/concerns are changed, split them into separate commits grouped by feature (e.g., one commit for authorization middleware, another for validation).
 - **Conventional commit messages**: Use the `feat:` / `fix:` / `refactor:` prefix convention with a descriptive subject line and bullet-point body listing specific changes.
 
-## 5. Obsidian Task Documentation Standard (Task Life Cycle Format)
-Whenever asked to document a task in the Obsidian Vault (`/home/sayos/Documents/Obsidian Vault/Project/<ProjectName>/`), follow this strict structure:
+## 5. Obsidian Task Documentation Standard (The Gold Standard)
+Whenever asked to document or explain a module, model, or architectural task in the Obsidian Vault (`/media/CR-004/MERN/Docs/Obsidian_BackEnd-Documentation/`):
 
-1. **Frontmatter & Header**:
-   - YAML frontmatter with relevant `tags` and `date_created`.
-   - Title header (`# 🔐 Topic - <Task Name>`).
+1. **Modular Dedicated Files Organization**:
+   - `00 - <Module> Master Index.md`: High-level architecture flowchart, table of contents, and overview.
+   - `01 - <Module> Model & Repository Setup.md`: Mongoose Interface, HydratedDocument, Schema with conditional rules, Collection naming, and Generic BaseRepository extension.
+   - `02 - <Module> Validation, DTOs & General Fields.md`: Zod schema, form-data union handling, custom validations (deduplication & ObjectId checks), superRefine, and DTO inference via `z.infer<>`.
+   - `03 - <Module> Controller & Routing Pipeline.md`: Express Router setup and the sequential multi-middleware guard pipeline.
+   - `04 - <Module> Service & Business Logic.md`: Lifecycle execution, third-party integrations (S3 / FCM / Mailer), repository interactions, rollback / fallback mechanisms, and success responses.
 
-2. **Task Life Cycle Flow Diagram**:
-   - A Mermaid diagram at the top illustrating the complete sequence/flow from incoming request to controller execution and error handling.
+2. **Core Explanation Principles (Zero-Assumption & High Fidelity)**:
+   - **Start from Absolute Scratch**: Explain "Why" before "How", third-party dashboard setup (S3 buckets, IAM, policies), and terminal installation commands (`npm i ...`).
+   - **Target Audience Mindset**: Write as if the developer is returning after a long break and has forgotten the details—explain every decision, guard, and step cleanly and logically.
+   - **Code Comments as Source of Truth**: Deeply inspect and extract all developer inline comments, parameter definitions, fallback mechanisms, and edge-case guards from the codebase.
+   - **Typography & Eye Comfort**:
+     - Generous spacing between paragraphs and bullet points.
+     - Clear visual dividers (`---`) and section badges/emojis.
+     - Avoid RTL/LTR text entanglement: isolate technical terms in backticks (\`Symbol\`) and keep code snippets in dedicated code blocks.
 
-3. **Step-by-Step Task Breakdown**:
-   For **every step** in the task life cycle:
-   - **Step Title**: e.g., `### 🔷 Step X: <Step Name>`
-   - **Details (Take, Do/Logic, Return)**:
-     - **Take (Inputs)**: Parameters, headers, or state received by the step.
-     - **Do / Logic**: Exact operations, checks, guards, and algorithms performed.
-     - **Return (Outputs)**: Produced values, errors passed to `next()`, or next function calls.
-   - **Code**: The exact TypeScript implementation snippet for that step.
-   - **Step Summary**: A concise blockquote summary highlighting what the step accomplishes.
-
-4. **Summary Checklist**:
-   - A final bulleted checklist (`- [x]`) confirming all requirements, safety checks, and modular exports.
+3. **Standard Section Structure for Every Document**:
+   - **YAML Frontmatter**: Relevant tags and `date_created`.
+   - **Header & Concept Overview**: Clean title and core purpose explanation.
+   - **Task Life Cycle Flow Diagram**: Mermaid `sequenceDiagram` or `graph TD` illustrating the complete request/response lifecycle.
+   - **Step-by-Step Task Breakdown**:
+     - `### 🔷 Step X: <Step Name>`
+     - `#### 📥 Details`: Take (Inputs), Do / Logic, Return (Outputs).
+     - `#### 💻 Code`: TypeScript snippet demonstrating the exact implementation.
+     - `#### 📝 Step Summary`: Concise blockquote summary highlighting what the step accomplishes.
+   - **Summary Checklist**: Final bulleted checklist (`- [x]`) confirming all requirements, safety checks, and modular exports.
 
 ## 6. Multi-File & Buffer Validation Pattern (Magic Numbers & Zod)
 - **File Gateway in Validation Middleware**: To enable Zod validation of uploaded files, the validation middleware attaches `req.files` to `req.body.files` before evaluating the body schema.
@@ -82,6 +89,7 @@ Whenever asked to document a task in the Obsidian Vault (`/home/sayos/Documents/
   4. **Middlewares** (e.g. `enhance: file getway form body handeld`)
   5. **Feature Vertical Slice** (Model, Schema, DTO, Service, Controller)
   6. **Cross-Service Refactors** (`refactor:`)
+
 
 
 

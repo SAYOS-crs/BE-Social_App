@@ -20,6 +20,7 @@ export const SECRET_KEY = GetENV("SECRET_KEY");
 export const REDIS_URL = GetENV("REDIS_URL") || "";
 export const EMAIL = GetENV("EMAIL") || "";
 export const PASS = GetENV("PASS") || "";
+export const CORS_WHITE_LIST = GetENV("CORS_WHITE_LIST") || "";
 // ─── JWT ─────────────────────────────────────────────────────────────────────
 export const JWT_USER_ACCESS_SECRET = GetENV("JWT_USER_ACCESS_SECRET");
 export const JWT_USER_REFRESH_SECRET = GetENV("JWT_USER_REFRESH_SECRET");

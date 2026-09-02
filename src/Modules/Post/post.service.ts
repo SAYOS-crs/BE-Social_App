@@ -3,13 +3,15 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
+  NotificationService,
   SuccessResponse,
   UnAuthroizedExption,
 } from "../../Utils";
 import { randomUUID } from "node:crypto";
-import { PostRepository } from "../../DB/Repository";
-import { HUserDocument } from "../../DB/models/User.model";
+import { PostRepository, UserRepository } from "../../DB/Repository";
+import { HUserDocument, IUser } from "../../DB/models/User.model";
 import { I_CreatePost_dto } from "./post.dto";
+import { HPostDocument, IPost } from "../../DB/models/Post.model";
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -18,23 +20,24 @@ class PostService {
     }
     return req.user;
   };
-  private _GetAuthorizedFile = (req: Request): Express.Multer.File => {
-    if (!req.file) {
-      throw new BadRequstExption("file not receved !");
-    }
+  // private _GetAuthorizedFile = (req: Request): Express.Multer.File => {
+  //   if (!req.file) {
+  //     throw new BadRequstExption("file not receved !");
+  //   }
 
-    return req.file;
-  };
-  private _GetAuthorizedMultiFiles = (req: Request): Express.Multer.File[] => {
-    if (!req.files) {
-      throw new BadRequstExption("file not receved !");
-    }
+  //   return req.file;
+  // };
+  // private _GetAuthorizedMultiFiles = (req: Request): Express.Multer.File[] => {
+  //   if (!req.files) {
+  //     throw new BadRequstExption("file not receved !");
+  //   }
 
-    return req.files as Express.Multer.File[];
-  };
-
+  //   return req.files as Express.Multer.File[];
+  // };
+  private readonly _FCM_Service = NotificationService;
   private readonly _AWS_S3 = AWS_SERVICE.S3service;
   private readonly _PostRepository = new PostRepository();
+  private readonly _UserRepository = new UserRepository();
   constructor() {}
 
   public createPost = async (
@@ -49,7 +52,7 @@ class PostService {
     // create fileId
     const fileId = randomUUID();
     // log check
-    console.log({ content, files, visibility, tags, likes, fileId });
+    // console.log({ content, files, visibility, tags, likes, fileId });
     //
     //
     //
@@ -63,7 +66,7 @@ class PostService {
       id: fileId,
     });
     // log check
-    console.log("s3 result : ", s3_r);
+    // console.log("s3 result : ", s3_r);
     //
     //
     //
@@ -71,7 +74,7 @@ class PostService {
     //
     //  * =====> step 3 : Create Post document via PostRepository
 
-    const result = await this._PostRepository.Create({
+    const result = await this._PostRepository.insertOne({
       data: {
         content,
         fileId,
@@ -83,7 +86,7 @@ class PostService {
       },
     });
     // log check
-    console.log("create post result", result);
+    // console.log("create post result", result);
     //
     //
     //
@@ -99,10 +102,56 @@ class PostService {
         Keys: Keys,
       });
     }
-
+    //
+    //
+    //
+    //
+    //  * =====> step 5 : send notification to tagged users
+    // - first get users that has been tagged using populate
+    // note :  taggedUsers is alias form  tags  ===    real : alias
+    // note : in populate the path refar to the <<filed>> that ref to other collection
+    //
+    //
+    const { tags: taggedUsers }: { tags: IUser[] } = await result.populate({
+      path: "tags",
+    });
+    // taggedUsers return  array of users and we want the fcm array form etch user
+    //
+    //
+    //
+    const taggedUsers_FCM_Tokens: string[] = taggedUsers
+      .map((user) => {
+        return user.FCM_Token ? user.FCM_Token : [];
+      })
+      .flat();
+    // taggedUsers_FCM_Tokens will return (array of array of fcm !) => [ [fcm1 , fcm2 ,fcm3] , [fcm1 , fcm2 ,fcm3],... ]
+    // -- but the << .flat(); >> will spread all the sup arrays in one array or
+    // -- The flat() method creates a new array with all sub-array elements concatenated into it automatically.
+    // after using flat() taggedUsers_FCM_Tokens will return  =>> [fcm1 , fcm2 ,fcm3 , ...]
+    //
+    //
+    //
+    const { CreatedBy }: { CreatedBy: IUser } =
+      await result.populate("CreatedBy");
+    // populate on CreatedBy to get user that created the post and get his name !
+    //
+    //
+    //
+    const FCM_r = await this._FCM_Service.SendNotifications({
+      data: {
+        title: `${CreatedBy.username} has tagged you`,
+        body: `${result?.content ? result?.content.slice(0, 20) : ""}...`,
+        // slice the content
+      },
+      fcm_tokens: taggedUsers_FCM_Tokens,
+    });
+    // send notification to tagged users all at ones and in multiple dvices
+    //
+    //
+    //
     return SuccessResponse<typeof result>({
       res,
-      message: "done",
+      message: "post created successfly",
       data: result,
     });
   };

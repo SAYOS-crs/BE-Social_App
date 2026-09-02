@@ -1,5 +1,6 @@
 import mongoose, {
   ApplyBasicCreateCasting,
+  HydratedDocument,
   InsertManyOptions,
   Model,
   MongooseUpdateQueryOptions,
@@ -29,7 +30,7 @@ export class BaseRepository<Tdocment> {
     filter: QueryFilter<Tdocment>;
     selection?: ProjectionType<Tdocment>;
     options?: QueryOptions;
-  }) {
+  }): Promise<HydratedDocument<Tdocment> | null> {
     const doc = this.model.findOne(filter).select(selection || "");
     if (options?.populate) {
       doc.populate(options.populate as PopulateOptions);
@@ -57,10 +58,12 @@ export class BaseRepository<Tdocment> {
   async insertOne({
     data,
     options,
+    populate,
   }: {
     data: Partial<ApplyBasicCreateCasting<Tdocment>>;
     options?: SaveOptions;
-  }) {
+    populate?: string;
+  }): Promise<HydratedDocument<Tdocment>> {
     return await this.model.insertOne(data, options);
   }
 

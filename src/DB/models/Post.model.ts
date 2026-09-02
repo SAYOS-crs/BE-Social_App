@@ -59,7 +59,10 @@ const PostSchema = new Schema<IPost>(
       required: false,
     },
     //
-    CreatedBy: Types.ObjectId,
+    CreatedBy: {
+      type: Types.ObjectId,
+      ref: "User",
+    },
     DeletedBy: Types.ObjectId,
     //
     CreatedAt: Date,
@@ -67,6 +70,7 @@ const PostSchema = new Schema<IPost>(
     UpdatedAt: Date,
   },
   {
+    // strictPopulate: false,
     collection: "Post_Collection",
     timestamps: true,
     toJSON: { virtuals: true },
