@@ -4,6 +4,7 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
+  ConflictExption,
   NotificationService,
   s3PathKeyPrefix,
   StorageAprotches,
@@ -361,7 +362,10 @@ export class UserService {
   ): Promise<Response> => {
     const user = this._GetAuthenticatedUser(req);
     const { token } = req.body;
-    const { id } = user;
+    const { id, FCM_Token } = user;
+    if (FCM_Token?.includes(token)) {
+      throw new ConflictExption("token already assigned !");
+    }
     const result = this._UserRepository.updateOne({
       filter: { _id: id },
       update: { $push: { FCM_Token: token } },

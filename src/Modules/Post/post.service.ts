@@ -150,9 +150,9 @@ class PostService {
     //
     //
     console.log(FCM_r);
-    if (FCM_r.status === "rejected") {
-      throw new BadRequstExption("fcm rejected", FCM_r);
-    }
+    // if (FCM_r[0].status === "rejected") {
+    //   throw new BadRequstExption("fcm rejected", FCM_r);
+    // }
     return SuccessResponse<typeof result>({
       res,
       message: "post created successfly",
