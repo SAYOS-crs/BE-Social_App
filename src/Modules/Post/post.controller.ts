@@ -14,6 +14,7 @@ import {
 } from "../../Utils";
 import Validation from "../../Middlewares/Validation.middleware";
 import {
+  PostReactValidationSchema,
   PostValidationSchema,
   RetrievePostValidationSchema,
 } from "./post.validation";
@@ -39,6 +40,14 @@ router.get(
   Authorization([Rolle.User, Rolle.Admin]),
   Validation(RetrievePostValidationSchema),
   postService.retrievePosts,
+);
+
+router.put(
+  "/react/:id",
+  Authentication(TokenType.Access),
+  Authorization([Rolle.User, Rolle.Admin]),
+  Validation(PostReactValidationSchema),
+  postService.reactOnPost,
 );
 
 export default router;

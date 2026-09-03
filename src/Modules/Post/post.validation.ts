@@ -1,5 +1,5 @@
 import z, { RefinementCtx } from "zod";
-import { AllowedFileTypes, GeneralFields } from "../../Utils";
+import { AllowedFileTypes, GeneralFields, PostEnum } from "../../Utils";
 import mongoose, { ObjectId, Types } from "mongoose";
 
 function CustomValidate(
@@ -123,5 +123,15 @@ export const RetrievePostValidationSchema = {
   query: z.strictObject({
     page: z.coerce.number().optional(),
     limit: z.coerce.number().optional(),
+  }),
+};
+
+export const PostReactValidationSchema = {
+  params: z.strictObject({
+    id: GeneralFields.id.optional(),
+  }),
+
+  query: z.strictObject({
+    react: GeneralFields.react,
   }),
 };

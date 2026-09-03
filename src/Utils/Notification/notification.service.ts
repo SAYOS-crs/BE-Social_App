@@ -16,7 +16,7 @@ class NotificationService {
         data,
       };
       return await getMessaging(FireBaseApp).send(payload);
-    } catch (err) {
+    } catch (err: any) {
       throw new BadRequstExption("Error while sending notoification", err);
     }
   }

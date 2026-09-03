@@ -3,6 +3,7 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
+  NotFoundExption,
   NotificationService,
   SuccessResponse,
   UnAuthroizedExption,
@@ -12,12 +13,13 @@ import { PostRepository, UserRepository } from "../../DB/Repository";
 import { HUserDocument, IUser } from "../../DB/models/User.model";
 import {
   I_CreatePost_dto,
+  I_PostReact_params_dto,
+  I_PostReact_query_dto,
   I_RetrievePost_params_dto,
   I_RetrievePost_query_dto,
 } from "./post.dto";
-import { HPostDocument, IPost } from "../../DB/models/Post.model";
+import { IPost } from "../../DB/models/Post.model";
 import { Types } from "mongoose";
-import { number } from "zod/v3";
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -45,7 +47,47 @@ class PostService {
   private readonly _PostRepository = new PostRepository();
   private readonly _UserRepository = new UserRepository();
   constructor() {}
+  // -------------------------------------------------
+  //
+  //
+  //
+  public reactOnPost = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    // step 1 : get (id) and (react )
+    const { id }: I_PostReact_params_dto = req.params;
+    const { react = 0 }: Partial<I_PostReact_query_dto> = req.query;
+    const user = this._GetAuthenticatedUser(req);
+    //
+    //
+    //
+    // step 2 : get the post by id
+    const post: IPost | null = await this._PostRepository.findById({
+      id: new Types.ObjectId(id),
+    });
+    if (!post) {
+      throw new NotFoundExption("post not found");
+    }
 
+    // step 3 : update the post / append react to post
+
+    const result = await this._PostRepository.updateOne({
+      filter: { _id: new Types.ObjectId(id) },
+      update:
+        react > 0
+          ? { $push: { likes: { id: user.id, react } } }
+          : { $pull: { likes: { id: user.id } } },
+    });
+    if (!result) {
+      throw new BadRequstExption("error while updating post");
+    }
+    return SuccessResponse<any>({ res, message: "done", data: { result } });
+  };
+  // -------------------------------------------------
+  //
+  //
+  //
   public createPost = async (
     req: Request,
     res: Response,
@@ -165,7 +207,10 @@ class PostService {
       data: result,
     });
   };
-
+  // -------------------------------------------------
+  //
+  //
+  //
   public retrievePosts = async (
     req: Request,
     res: Response,
@@ -211,6 +256,10 @@ class PostService {
       },
     });
   };
+  // -------------------------------------------------
+  //
+  //
+  //
 }
 
 export default new PostService();

@@ -62,4 +62,12 @@ export const GeneralFields = {
         }
       });
   },
+
+  react: z.coerce.number().refine(
+    (v) => {
+      // this is how to make sure react number is in the enum of reacts
+      return Object.values(PostEnum.PostReactEnum).includes(Number(v));
+    },
+    { error: "react number not valid" },
+  ),
 };

@@ -7,6 +7,7 @@ import { PostEnum } from "../../Utils";
 // step 1 : create intercafe
 export interface IPost {
   // ---- post content
+  _id?: Types.ObjectId;
   content?: string | undefined;
   attachments?: string[] | undefined;
   visibility?: PostEnum.VisibilityEnum | undefined;
@@ -49,8 +50,15 @@ const PostSchema = new Schema<IPost>(
     fileId: String,
     //
     likes: {
-      type: [String],
-      ref: "User",
+      type: [
+        {
+          id: {
+            type: String,
+            ref: "User",
+          },
+          react: Number,
+        },
+      ],
       required: false,
     },
     tags: {
@@ -73,6 +81,7 @@ const PostSchema = new Schema<IPost>(
     // strictPopulate: false,
     collection: "Post_Collection",
     timestamps: true,
+    _id: false,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     strict: true,
