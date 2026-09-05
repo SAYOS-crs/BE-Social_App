@@ -35,7 +35,7 @@ router.post(
 );
 
 router.get(
-  "/{:id}",
+  "/{:postId}",
   Authentication(TokenType.Access),
   Authorization([Rolle.User, Rolle.Admin]),
   Validation(RetrievePostValidationSchema),
@@ -43,7 +43,7 @@ router.get(
 );
 
 router.put(
-  "/react/:id",
+  "/react/:postId",
   Authentication(TokenType.Access),
   Authorization([Rolle.User, Rolle.Admin]),
   Validation(PostReactValidationSchema),

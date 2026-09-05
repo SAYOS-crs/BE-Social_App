@@ -5,13 +5,14 @@
 // 4. assign the the schema in mongoose
 // 5. implement the save option assign
 
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import { EncryptionService, Enums, HashingService } from "../../Utils";
 
 export interface IUser {
   // name
   FCM_Token?: string[];
   id: string;
+  _id: Types.ObjectId;
   firstName: string;
   lastName: string;
   username?: string;
@@ -160,3 +161,9 @@ UserSchema.pre("updateOne", { document: true }, async function () {
 });
 const UserModel = mongoose.model<IUser>("User", UserSchema);
 export default UserModel;
+
+// important nots :
+//
+// // general nots :-
+// - note : _id taype of ObjectId / id type of string
+// - you can active the id on the doc by id:true but it will be virtual mean you can't see it in mongoo campos

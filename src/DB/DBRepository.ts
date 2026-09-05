@@ -65,7 +65,7 @@ export class BaseRepository<Tdocment> {
     selection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: mongoose.Types.ObjectId | string;
     selection?: ProjectionType<Tdocment>;
     options?: QueryOptions;
   }) {

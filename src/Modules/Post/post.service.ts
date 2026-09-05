@@ -3,8 +3,10 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
+  ConflictExption,
   NotFoundExption,
   NotificationService,
+  PostEnum,
   SuccessResponse,
   UnAuthroizedExption,
 } from "../../Utils";
@@ -18,7 +20,7 @@ import {
   I_RetrievePost_params_dto,
   I_RetrievePost_query_dto,
 } from "./post.dto";
-import { IPost } from "../../DB/models/Post.model";
+import { IPost, React } from "../../DB/models/Post.model";
 import { Types } from "mongoose";
 
 class PostService {
@@ -56,28 +58,38 @@ class PostService {
     res: Response,
   ): Promise<Response> => {
     // step 1 : get (id) and (react )
-    const { id }: I_PostReact_params_dto = req.params;
+    const { postId }: Partial<I_PostReact_params_dto> = req.params;
     const { react = 0 }: Partial<I_PostReact_query_dto> = req.query;
     const user = this._GetAuthenticatedUser(req);
+    if (!postId) {
+      throw new BadRequstExption("post id is required");
+    }
     //
     //
     //
     // step 2 : get the post by id
     const post: IPost | null = await this._PostRepository.findById({
-      id: new Types.ObjectId(id),
+      id: postId,
     });
     if (!post) {
       throw new NotFoundExption("post not found");
     }
 
+    // if (post.likes) {
+    //   (post.likes as React[]).map((like) => {
+    //     if (like._id == user._id) {
+    //       throw new ConflictExption('')
+    //     }
+    //   } )
+    // }
     // step 3 : update the post / append react to post
 
     const result = await this._PostRepository.updateOne({
-      filter: { _id: new Types.ObjectId(id) },
+      filter: { _id: postId },
       update:
         react > 0
-          ? { $push: { likes: { id: user.id, react } } }
-          : { $pull: { likes: { id: user.id } } },
+          ? { $addToSet: { likes: { _id: user._id, react } } }
+          : { $pull: { likes: { _id: user._id } } },
     });
     if (!result) {
       throw new BadRequstExption("error while updating post");
@@ -95,8 +107,7 @@ class PostService {
     //  * =====> step 1 : collect the docu data
     // get user by user Guard
     const user = this._GetAuthenticatedUser(req);
-    let { content, files, visibility, tags, likes }: I_CreatePost_dto =
-      req.body;
+    let { content, files, visibility, tags }: I_CreatePost_dto = req.body;
     // create fileId
     const fileId = randomUUID();
     // log check
@@ -106,13 +117,15 @@ class PostService {
     //
     //
     //  * =====> step 2 : Upload Assets via S3
-
-    const s3_r = await this._AWS_S3.UploadMultiFiles({
-      AssetType: AwsEnum.AssetType.attachments,
-      folder: AwsEnum.FolderType.Post,
-      files: files as Express.Multer.File[],
-      id: fileId,
-    });
+    let s3_r;
+    if (files?.length) {
+      s3_r = await this._AWS_S3.UploadMultiFiles({
+        AssetType: AwsEnum.AssetType.attachments,
+        folder: AwsEnum.FolderType.Post,
+        files: files as Express.Multer.File[],
+        id: fileId,
+      });
+    }
     // log check
     // console.log("s3 result : ", s3_r);
     //
@@ -121,14 +134,14 @@ class PostService {
     //
     //
     //  * =====> step 3 : Create Post document via PostRepository
+    // console.log("s3 result =:", s3_r);
 
     const result = await this._PostRepository.insertOne({
       data: {
         content,
-        fileId,
+        fileId: s3_r ? fileId : undefined,
         visibility,
         tags,
-        likes,
         attachments: s3_r,
         CreatedBy: user.id,
       },
@@ -140,7 +153,7 @@ class PostService {
     //
     //
     //  * =====> step 4 : Delete Assets if post creation fail
-    if (!result) {
+    if (!result && s3_r) {
       // create array of Key >> [{Key:string}]
       const Keys: { Key: string }[] = s3_r.map((Key) => {
         return { Key };
@@ -154,53 +167,56 @@ class PostService {
     //
     //
     //
-    //  * =====> step 5 : send notification to tagged users
+    //  * =====> step 5 : send notification to tagged users (if there tagged user )
     // - first get users that has been tagged using populate
     // note :  taggedUsers is alias form  tags  ===    real : alias
     // note : in populate the path refar to the <<filed>> that ref to other collection
     //
     //
-    const { tags: taggedUsers }: { tags: IUser[] } = await result.populate({
-      path: "tags",
-    });
-    // taggedUsers return  array of users and we want the fcm array form etch user
-    //
-    //
-    //
-    const taggedUsers_FCM_Tokens: string[] = taggedUsers
-      .map((user) => {
-        return user.FCM_Token ? user.FCM_Token : [];
-      })
-      .flat();
-    // taggedUsers_FCM_Tokens will return (array of array of fcm !) => [ [fcm1 , fcm2 ,fcm3] , [fcm1 , fcm2 ,fcm3],... ]
-    // -- but the << .flat(); >> will spread all the sup arrays in one array or        ! important note !!!!
-    // -- The flat() method creates a new array with all sub-array elements concatenated into it automatically.
-    // after using flat() taggedUsers_FCM_Tokens will return  =>> [fcm1 , fcm2 ,fcm3 , ...]
-    //
-    //
-    //
-    const { CreatedBy }: { CreatedBy: IUser } =
-      await result.populate("CreatedBy");
-    // populate on CreatedBy to get user that created the post and get his name !
-    //
-    //
-    //
-    const FCM_r = await this._FCM_Service.SendNotifications({
-      data: {
-        title: `${CreatedBy.username} has tagged you`,
-        body: `${result?.content ? result?.content.slice(0, 20) : ""}...`,
-        // slice the content
-      },
-      fcm_tokens: taggedUsers_FCM_Tokens,
-    });
-    // send notification to tagged users all at ones and in multiple dvices
-    //
-    //
-    //
-    console.log(FCM_r);
-    // if (FCM_r[0].status === "rejected") {
-    //   throw new BadRequstExption("fcm rejected", FCM_r);
-    // }
+    if (result.tags) {
+      const { tags: taggedUsers }: { tags: IUser[] } = await result.populate({
+        path: "tags",
+      });
+      // taggedUsers return  array of users and we want the fcm array form etch user
+      //
+      //
+      //
+      const taggedUsers_FCM_Tokens: string[] = taggedUsers
+        .map((user) => {
+          return user.FCM_Token?.length ? user.FCM_Token : [];
+        })
+        .flat();
+      // taggedUsers_FCM_Tokens will return (array of array of fcm !) => [ [fcm1 , fcm2 ,fcm3] , [fcm1 , fcm2 ,fcm3],... ]
+      // -- but the << .flat(); >> will spread all the sup arrays in one array or        ! important note !!!!
+      // -- The flat() method creates a new array with all sub-array elements concatenated into it automatically.
+      // after using flat() taggedUsers_FCM_Tokens will return  =>> [fcm1 , fcm2 ,fcm3 , ...]
+      //
+      //
+      //
+      const { CreatedBy }: { CreatedBy: IUser } =
+        await result.populate("CreatedBy");
+      // populate on CreatedBy to get user that created the post and get his name !
+      //
+      //
+      //
+      await this._FCM_Service.SendNotifications({
+        data: {
+          title: `${CreatedBy.username} has tagged you`,
+          body: `${result?.content ? result?.content.slice(0, 20) : ""}...`,
+          // slice the content
+        },
+        fcm_tokens: taggedUsers_FCM_Tokens,
+      });
+      // send notification to tagged users all at ones and in multiple dvices
+      //
+      //
+      //
+      // console.log(FCM_r);
+      // if (FCM_r[0].status === "rejected") {
+      //   throw new BadRequstExption("fcm rejected", FCM_r);
+      // }
+    }
+
     return SuccessResponse<typeof result>({
       res,
       message: "post created successfly",
@@ -215,7 +231,7 @@ class PostService {
     req: Request,
     res: Response,
   ): Promise<Response> => {
-    const { id }: Partial<I_RetrievePost_params_dto> = req.params;
+    const { postId }: Partial<I_RetrievePost_params_dto> = req.params;
     const { limit = 10, page = 1 }: Partial<I_RetrievePost_query_dto> =
       req.query;
     // limit is alwayes = 10
@@ -225,7 +241,7 @@ class PostService {
     console.log(skip);
 
     const result: IPost | IPost[] = await this._PostRepository.find({
-      filter: id ? new Types.ObjectId(id) : undefined,
+      filter: { id: postId ?? "" },
       // undefined = posts
       // new Types.ObjectId(id) = one post by id
       options: {

@@ -11,7 +11,7 @@ export default function Validation(schema: ValidationSchema) {
     const ErrorResults: ZodError[] = [];
     if (req.files) {
       req.body.files = req.files;
-      console.log(req.body, req.body.likes.length);
+      console.log(req.body, req.body.likes?.length);
     }
     for (const key of Object.keys(schema)) {
       if (!schema[key]) continue;

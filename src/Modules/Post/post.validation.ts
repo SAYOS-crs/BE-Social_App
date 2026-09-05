@@ -61,7 +61,7 @@ export const PostValidationSchema = {
       files: z.array(GeneralFields.file(AllowedFileTypes.photo)).optional(),
 
       tags: GeneralFields.tags.optional(),
-      likes: GeneralFields.tags.optional(),
+
       visibility: GeneralFields.visibility.optional(),
     })
     .superRefine((values, ctx) => {
@@ -99,25 +99,12 @@ export const PostValidationSchema = {
         //   });
         // }
       }
-      // likes
-      if (values.likes?.length) {
-        // const uniquelikes: string[] = [...new Set(values.likes)];
-        // if (uniquelikes.length != values.likes.length) {
-        //   ctx.addIssue({
-        //     code: "custom",
-        //     path: ["likes"],
-        //     message:
-        //       "there is a duplication in likes , user can do one like only!",
-        //   });
-        // }
-        CustomValidate(values.likes, "likes", ctx);
-      }
     }),
 };
 
 export const RetrievePostValidationSchema = {
   params: z.strictObject({
-    id: GeneralFields.id.optional(),
+    postId: GeneralFields.id.optional(),
   }),
 
   query: z.strictObject({
@@ -128,7 +115,7 @@ export const RetrievePostValidationSchema = {
 
 export const PostReactValidationSchema = {
   params: z.strictObject({
-    id: GeneralFields.id.optional(),
+    postId: GeneralFields.id,
   }),
 
   query: z.strictObject({
