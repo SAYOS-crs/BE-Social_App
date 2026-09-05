@@ -10,7 +10,7 @@ export type React = {
 // step 1 : create intercafe
 export interface IPost {
   // ---- post content
-  _id: Types.ObjectId | string;
+  _id: Types.ObjectId | string | undefined;
   content?: string | undefined;
   attachments?: string[] | undefined;
   visibility?: PostEnum.VisibilityEnum | undefined;

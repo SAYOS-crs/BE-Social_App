@@ -28,7 +28,8 @@ export interface IUser {
   // photos
   UserImage?: string;
   CoverImage?: string[];
-
+  // friends
+  Friends: string[] | Types.ObjectId[];
   // role + gender
   Gender: Enums.Gender;
   Rolle: Enums.Rolle;
@@ -99,6 +100,11 @@ const UserSchema = new Schema<IUser>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    Friends: {
+      type: [String],
+      ref: "User",
+      required: false,
     },
     FCM_Token: {
       type: [String],

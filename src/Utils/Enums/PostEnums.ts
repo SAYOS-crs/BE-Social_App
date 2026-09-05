@@ -1,7 +1,7 @@
 export enum VisibilityEnum {
   Public = "Public",
   Private = "Private",
-  Frends = "Frends",
+  Friends = "Friends",
 }
 
 export enum PostReactEnum {

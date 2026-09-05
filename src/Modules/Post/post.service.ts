@@ -21,7 +21,21 @@ import {
   I_RetrievePost_query_dto,
 } from "./post.dto";
 import { IPost, React } from "../../DB/models/Post.model";
-import { Types } from "mongoose";
+import { AnyKeys, Types } from "mongoose";
+import { QueryFilter } from "mongoose";
+import { UpdateQuery } from "mongoose";
+
+export function VisibilityQueryCheck(user: IUser) {
+  return [
+    { visibility: PostEnum.VisibilityEnum.Public },
+    { visibility: PostEnum.VisibilityEnum.Private, CreatedBy: user.id },
+    {
+      visibility: PostEnum.VisibilityEnum.Friends,
+      CreatedBy: { $in: [user.id, ...user.Friends] },
+    },
+    { tags: user.id },
+  ];
+}
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -75,26 +89,66 @@ class PostService {
       throw new NotFoundExption("post not found");
     }
 
-    // if (post.likes) {
-    //   (post.likes as React[]).map((like) => {
-    //     if (like._id == user._id) {
-    //       throw new ConflictExption('')
-    //     }
-    //   } )
-    // }
-    // step 3 : update the post / append react to post
-
-    const result = await this._PostRepository.updateOne({
-      filter: { _id: postId },
-      update:
-        react > 0
-          ? { $addToSet: { likes: { _id: user._id, react } } }
-          : { $pull: { likes: { _id: user._id } } },
-    });
-    if (!result) {
-      throw new BadRequstExption("error while updating post");
+    // step 3 : prepare the query condition
+    let updateQ = [];
+    // - check if there is likes to began the search and prepare the query operation
+    if ((post.likes as React[]).length) {
+      // - ittrate on the likes
+      updateQ = (post.likes as React[]).map((like, i): any => {
+        // - check 1 : check if the user is exist in the likes array ?
+        // + if not that mean its new like
+        // = if note push it as new like
+        if (!user._id.equals(like._id)) {
+          return { $push: { likes: { _id: user._id, react } } };
+        }
+        // - check 2 : check if the user._id in the likes array and with the same react type ?
+        // + that mean its the same like without any chang
+        // = reaturn null and dont call the db to update
+        else if (user._id.equals(like._id) && like.react === react) {
+          return null;
+        }
+        // - check 3 : check if the user._id in the likes array ?
+        // + << and and >> his react type is not the same ?
+        // = replace the hole like with new one by (index) / replace to update
+        else if (user._id.equals(like._id) && like.react != react) {
+          // [`likes.${i}`] : likes is the filed and . mean of and ${i} is the index
+          return { $set: { [`likes.${i}`]: { _id: user._id, react } } };
+          //
+        }
+      });
     }
-    return SuccessResponse<any>({ res, message: "done", data: { result } });
+    // - in case if the post dont have likes , push its the first like
+    else {
+      updateQ.push({ $push: { likes: { _id: user._id, react } } });
+    }
+
+    // - step 4 : check if updateQ has Query ?
+    // + if not set it with null to prevent falsey call to db
+    // = if it have an update Query call the updateOne method
+    let result = updateQ[0]
+      ? await this._PostRepository.updateOne({
+          // check for post & Visibility
+          filter: { _id: postId, $or: VisibilityQueryCheck(user) },
+          update:
+            react > 0 ? updateQ[0] : { $pull: { likes: { _id: user._id } } },
+        })
+      : null;
+
+    // if !result?.modifiedCount that mean the filter didnt match
+    if (!result?.modifiedCount && result !== null) {
+      throw new NotFoundExption("post not found");
+    }
+    // short hand condition for custom message.
+    return SuccessResponse<any>({
+      res,
+      message:
+        result === null
+          ? "User already liked this post with the same react !"
+          : "done",
+      data: {
+        result,
+      },
+    });
   };
   // -------------------------------------------------
   //
@@ -234,14 +288,24 @@ class PostService {
     const { postId }: Partial<I_RetrievePost_params_dto> = req.params;
     const { limit = 10, page = 1 }: Partial<I_RetrievePost_query_dto> =
       req.query;
+    const user = this._GetAuthenticatedUser(req);
     // limit is alwayes = 10
     // page is always = 1 > to decremnt it by 1 so if it = (2 - 1 = 1) * (10 limit) = 10 skip
     const skip = (limit as number) * ((page as number) - 1);
     // page must be decremnt by -1  ? to make the count from 1 not 0
-    console.log(skip);
 
+    // condition on query
+    const filter: QueryFilter<IPost> = {
+      $or: VisibilityQueryCheck(user),
+    };
+    if (postId) {
+      filter._id = postId;
+    }
+    // important note ! : i separated the filter from find with const to make condition that
+    // manage if the postId is exist findit if not get all posts
+    // and that called the logical query condition and have many useCases
     const result: IPost | IPost[] = await this._PostRepository.find({
-      filter: { id: postId ?? "" },
+      filter,
       // undefined = posts
       // new Types.ObjectId(id) = one post by id
       options: {
