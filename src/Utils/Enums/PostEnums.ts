@@ -10,5 +10,4 @@ export enum PostReactEnum {
   angry,
   laughs,
   sad,
-  moron,
 }

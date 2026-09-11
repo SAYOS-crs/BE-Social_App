@@ -18,6 +18,7 @@ import {
   PostValidationSchema,
   RetrievePostValidationSchema,
 } from "./post.validation";
+import { CommentRouter } from "../Comment";
 
 const router: Router = Router();
 
@@ -49,5 +50,9 @@ router.put(
   Validation(PostReactValidationSchema),
   postService.reactOnPost,
 );
+
+// ------// Comment SupRouter // ------//
+router.use("/:PostId/comment", CommentRouter);
+// ------//// ------//// ------//// ------//// ------//
 
 export default router;

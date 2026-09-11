@@ -22,6 +22,7 @@ import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Keys } from "./types";
 
 export const s3PathKeyPrefix = ({
   folder,
@@ -325,7 +326,7 @@ class S3service {
     Keys,
   }: {
     Bucket?: string;
-    Keys: ObjectIdentifier[];
+    Keys: Keys;
   }): Promise<DeletedObject[]> {
     const command = new DeleteObjectsCommand({
       Bucket,

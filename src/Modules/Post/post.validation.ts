@@ -2,7 +2,7 @@ import z, { RefinementCtx } from "zod";
 import { AllowedFileTypes, GeneralFields, PostEnum } from "../../Utils";
 import mongoose, { ObjectId, Types } from "mongoose";
 
-function CustomValidate(
+export function CustomValidate(
   field: string[] | string,
   path: string,
   ctx: RefinementCtx,

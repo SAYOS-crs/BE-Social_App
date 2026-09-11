@@ -1,20 +1,19 @@
 import mongoose, { Schema, Types } from "mongoose";
 import { IUser } from "./User.model";
 import { PostEnum } from "../../Utils";
+import { React } from "./Post.model";
+import { Keys } from "../../Utils/AWS/types";
 
 // ------------------------------ Post Model ------------------------------\\
-export type React = {
-  _id: string | Types.ObjectId;
-  react: PostEnum.PostReactEnum;
-};
+
 // step 1 : create intercafe
-export interface IPost {
+export interface IComment {
   // ---- post content
   _id: Types.ObjectId | string | undefined;
   id: Types.ObjectId | string | undefined;
-
+  postId: string | Types.ObjectId;
   content?: string | undefined;
-  attachments?: string[] | undefined;
+  attachments?: Keys | undefined;
   visibility?: PostEnum.VisibilityEnum | undefined;
   // ---- fileId > id of attachments s3 bucket
   fileId?: string | undefined;
@@ -29,26 +28,30 @@ export interface IPost {
   UpdatedAt?: Date | undefined;
   DeletedAt?: Date | undefined;
 }
-export type HPostDocument = mongoose.HydratedDocument<IPost>;
+export type HCommentDoc = mongoose.HydratedDocument<IComment>;
 
 // step 2 : create model Schema
-const PostSchema = new Schema<IPost>(
+const CommentSchema = new Schema<IComment>(
   {
     content: {
       type: String,
-      required: function (this: HPostDocument) {
+      required: function (this: HCommentDoc) {
         return !this.attachments?.length;
       },
     },
     attachments: {
-      type: [String],
+      type: [{ Key: String }],
       max: [3, "max post attachment : 3 "],
-      required: function (this: HPostDocument) {
-        return !this.content;
+      required: function (this: HCommentDoc) {
+        return Boolean(!this.content);
       },
     },
     fileId: String,
-
+    postId: {
+      type: String,
+      ref: "Post",
+      required: true,
+    },
     visibility: {
       type: String,
       enum: PostEnum.VisibilityEnum,
@@ -84,8 +87,7 @@ const PostSchema = new Schema<IPost>(
     UpdatedAt: Date,
   },
   {
-    // strictPopulate: false,
-    collection: "Post_Collection",
+    collection: "Comment_Collection",
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
@@ -109,4 +111,4 @@ const PostSchema = new Schema<IPost>(
 // - id will refrunce the user._id
 //
 
-export const PostModel = mongoose.model<IPost>("Post", PostSchema);
+export const CommentModel = mongoose.model<IComment>("Comment", CommentSchema);
