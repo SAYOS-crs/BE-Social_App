@@ -42,7 +42,7 @@ router.post(
   }).array("attachments", 3),
   FileFilter(AllowedFileTypes.photo),
   Validation(CommentReplyValidationSchema),
-  commentService.CreateReplayComment,
+  commentService.CreateReplyComment,
 );
 
 export default router;

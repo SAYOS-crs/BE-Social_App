@@ -141,14 +141,14 @@ class CommentService {
       data: result,
     });
   };
-  public CreateReplayComment = async (
+  public CreateReplyComment = async (
     req: Request,
     res: Response,
   ): Promise<Response> => {
     // ---- steps ---//
     // step 1 : distruct the postID & CommentId
     // step 2 : check for post and CommentId
-    // step 3 : upload attachments if there any in aws & insert the comment as replay by butting {ReplayedOn:Comment_ID}
+    // step 3 : upload attachments if there any in aws & insert the comment as Reply by butting {ReplyedOn:Comment_ID}
     // step 4 : send notification to Comment User
     //----////----////----////----////----////----////----////----////----//
     //----////----////----////----////----////----////----////----////----//
@@ -210,7 +210,7 @@ class CommentService {
         fileId: S3_r === undefined ? undefined : folderId,
         tags,
         visibility,
-        ReplayedOn: CommentId as string,
+        ReplyedOn: CommentId as string,
         postId: post.id as string,
         CreatedBy: user.id,
       },
