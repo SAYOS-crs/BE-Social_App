@@ -15,7 +15,9 @@ export interface IComment {
   content?: string | undefined;
   attachments?: Keys | undefined;
   visibility?: PostEnum.VisibilityEnum | undefined;
-  ReplyedOn?: string | IComment | undefined;
+  // ---- replyes
+  RepliedOn?: string | IComment | undefined;
+  RepliedList?: string[] | IComment[] | undefined;
   // ---- fileId > id of attachments s3 bucket
   fileId?: string | undefined;
   // ---- post / users actions to post
@@ -58,8 +60,14 @@ const CommentSchema = new Schema<IComment>(
       enum: PostEnum.VisibilityEnum,
       default: PostEnum.VisibilityEnum.Public,
     },
-    ReplyedOn: {
+    //
+    RepliedOn: {
       type: Types.ObjectId,
+      ref: "Comment",
+      required: false,
+    },
+    RepliedList: {
+      type: [Types.ObjectId],
       ref: "Comment",
       required: false,
     },

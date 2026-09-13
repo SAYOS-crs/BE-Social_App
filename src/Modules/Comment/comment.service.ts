@@ -26,6 +26,7 @@ import {
   I_CreatePost_Body_DTO,
   I_CreatePost_Params_DTO,
 } from "./comment.dto";
+import { IComment } from "../../DB/models/Comment.model";
 
 export const SendAssets_S3 = async (
   files?: Express.Multer.File[],
@@ -148,7 +149,7 @@ class CommentService {
     // ---- steps ---//
     // step 1 : distruct the postID & CommentId
     // step 2 : check for post and CommentId
-    // step 3 : upload attachments if there any in aws & insert the comment as Reply by butting {ReplyedOn:Comment_ID}
+    // step 3 : upload attachments if there any in aws & insert the comment as Reply by butting {RepliedOn:Comment_ID}
     // step 4 : send notification to Comment User
     //----////----////----////----////----////----////----////----////----//
     //----////----////----////----////----////----////----////----////----//
@@ -174,16 +175,18 @@ class CommentService {
     });
     const comment = await this._CommentRepository.findOne({
       filter: {
-        id: PostId as string,
+        id: CommentId as string,
         $or: Post_Utils.VisibilityQueryCheck(user),
       },
       options: { populate: "CreatedBy" },
     });
     if (!post) {
       throw new NotFoundExption("post not found");
-    } else if (!comment) {
+    }
+    if (!comment) {
       throw new NotFoundExption("Comment not found");
-    } else if ((post.id as string) != (comment?.postId as string)) {
+    }
+    if (post.id != comment?.postId) {
       console.log(post.id, "is not", comment?.postId);
       throw new ConflictExption("this comment dont belong to this post");
     }
@@ -207,18 +210,35 @@ class CommentService {
       data: {
         content,
         attachments: S3_r,
-        fileId: S3_r === undefined ? undefined : folderId,
+        fileId: S3_r != undefined ? folderId : undefined,
         tags,
         visibility,
-        ReplyedOn: CommentId as string,
+        RepliedOn: comment.id as string,
         postId: post.id as string,
         CreatedBy: user.id,
       },
     });
-    if (!result && S3_r) {
-      await this._AWS_S3.DeleteAssets({
-        Keys: S3_r,
+    if (!result) {
+      if (S3_r) {
+        await this._AWS_S3.DeleteAssets({
+          Keys: S3_r,
+        });
+      }
+      throw new BadRequstExption("fail to reply on comment");
+    }
+    const PushReply = await this._CommentRepository.updateOne({
+      filter: {
+        id: comment.id as string,
+      },
+      update: {
+        $push: { RepliedList: result._id },
+      },
+    });
+    if (!PushReply) {
+      await this._CommentRepository.DeleteOne({
+        id: result.id as string,
       });
+      throw new BadRequstExption("fail to push reply");
     }
     //----////----////----////----////----////----////----////----////----//
     //----////----////----////----////----////----////----////----////----//
