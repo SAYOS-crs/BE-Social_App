@@ -153,8 +153,8 @@ UserSchema.pre(
 // );
 
 // query middleware that insure the search dose not include the doc are softDeleted.
-UserSchema.pre("findOne", async function () {
-  this.findOne({ isDeleted: false });
+UserSchema.pre("findOne", function () {
+  this.where({ isDeleted: false });
 });
 // docment middleware that hash the password in update case + its docment middleware bcz we use { document: true }.
 UserSchema.pre("updateOne", { document: true }, async function () {

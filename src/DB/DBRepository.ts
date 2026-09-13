@@ -41,6 +41,10 @@ export class BaseRepository<Tdocment> {
     if (options?.limit) {
       doc.limit(options.limit);
     }
+    if (options?.populate) {
+      doc.populate(options.populate as string);
+    }
+
     return await doc.exec();
   }
 

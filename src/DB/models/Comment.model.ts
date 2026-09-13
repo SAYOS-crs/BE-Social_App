@@ -51,7 +51,7 @@ const CommentSchema = new Schema<IComment>(
     },
     fileId: String,
     postId: {
-      type: Types.ObjectId,
+      type: String,
       ref: "Post",
       required: true,
     },
@@ -62,12 +62,12 @@ const CommentSchema = new Schema<IComment>(
     },
     //
     RepliedOn: {
-      type: Types.ObjectId,
+      type: String,
       ref: "Comment",
       required: false,
     },
     RepliedList: {
-      type: [Types.ObjectId],
+      type: [String],
       ref: "Comment",
       required: false,
     },

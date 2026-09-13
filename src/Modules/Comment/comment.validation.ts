@@ -35,3 +35,15 @@ export const CommentReplyValidationSchema = {
     CommentId: GeneralFields.id,
   }),
 };
+
+export const GetPostCommentsValidationSchema = {
+  params: z.strictObject({
+    PostId: GeneralFields.id,
+  }),
+};
+export const GetCommentRepliesValidationSchema = {
+  params: z.strictObject({
+    PostId: GeneralFields.id,
+    CommentId: GeneralFields.id,
+  }),
+};

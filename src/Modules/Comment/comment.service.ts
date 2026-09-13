@@ -25,8 +25,10 @@ import {
   I_CommentReply_Params_DTO,
   I_CreatePost_Body_DTO,
   I_CreatePost_Params_DTO,
+  I_GetCommentReplies_Params_DTO,
+  I_GetPostComments_Params_DTO,
 } from "./comment.dto";
-import { IComment } from "../../DB/models/Comment.model";
+import { Types } from "mongoose";
 
 export const SendAssets_S3 = async (
   files?: Express.Multer.File[],
@@ -72,38 +74,45 @@ class CommentService {
   //----////----////----////----////----////----////----////----////----//
 
   constructor() {}
-  public CreateComment = async (req: Request, res: Response) => {
-    //----// create comment steps //----//
-    // step 1 : distruct the elements
-    // step 2 : get the post && make sure there is post with that id
-    // step 3 : after making sure there is a valid files send it to AWS S3 & create folderID
-    // step 4 : create new comment with the data / and if there is result from AWS_S3 appind folderID + attachments
-    // step 5 : if the comment creation fail delete the files that has been send to s3 &
-    //        - safety check : if comment fail to create and and there are S3_r = execute
-    // step 6 : if the comment creation success send notification to tagged user in comment if there any and and the Creator
-    // finally: return result
-    // -----//// -----//// -----//// -----//// -----//// -----//// -----//// -----//// -----//// -----//// -----//
-    //--- Step 1 --- //
+  /**
+   * =====================================================================================
+   * Method: CreateComment
+   * Purpose: Create a top-level comment on a post with optional attachments.
+   *
+   * Query Fix Explanation:
+   * - Previously, the post lookup queried `filter: { id: PostId }`.
+   * - Because `id` is a virtual getter and not a schema path in MongoDB, Mongoose's
+   *   `strictQuery: true` stripped it out, causing the lookup to match the first post in DB.
+   * - Fixed: Updated to `filter: { _id: PostId }` to ensure accurate post validation.
+   * =====================================================================================
+   */
+  public CreateComment = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    // Step 1: Extract request params, body, and authenticated user
     const { PostId }: Partial<I_CreatePost_Params_DTO> = req.params;
     const { content, files, visibility, tags }: I_CreatePost_Body_DTO =
       req.body;
     const user = this._GetAuthenticatedUser(req);
-    //--- Step 2 --- //
+
+    // Step 2: Validate that the target post exists and is accessible by the user
     const post = await this._PostRepository.findOne({
       filter: {
-        id: PostId as string,
+        _id: PostId as string,
         $or: Post_Utils.VisibilityQueryCheck(user),
       },
     });
     if (!post) {
       throw new NotFoundExption(`Post with id : ${PostId} - Not found`);
     }
-    //--- Step 3 --- //
 
+    // Step 3: Upload any attached media files to AWS S3
     const { folderId, S3_r } = await SendAssets_S3(
       files as Express.Multer.File[],
     );
-    //--- Step 4 --- //
+
+    // Step 4: Persist the new comment in the database
     const result = await this._CommentRepository.insertOne({
       data: {
         postId: PostId as string,
@@ -115,8 +124,8 @@ class CommentService {
         CreatedBy: user.id,
       },
     });
-    //--- Step 5 --- //
-    // safety check : if comment fail to create and and there are S3_r = execute
+
+    // Step 5: Rollback cleanup - delete S3 files if comment insertion fails
     if (!result && S3_r) {
       await this._AWS_S3.DeleteAssets({
         Keys: S3_r,
@@ -124,8 +133,8 @@ class CommentService {
     } else if (!result) {
       throw new BadRequstExption("fail to create comment !", result);
     }
-    //--- Step 6 --- //
-    // Triple check : if result and tags are here and result has tags ?
+
+    // Step 6: Send push notifications to tagged users if any
     if (result && tags && (result.tags as string[]).length) {
       const FCM_r = await this._FCM_Serives.SendNotifications({
         data: {
@@ -136,50 +145,53 @@ class CommentService {
       });
       console.log(FCM_r);
     }
+
     return SuccessResponse<any>({
       res,
       message: `User : ${user.username} has commented on post : ${PostId} successfly`,
       data: result,
     });
   };
+
+  /**
+   * =====================================================================================
+   * Method: CreateReplyComment
+   * Purpose: Create a reply to an existing comment and push its ID to the parent comment.
+   *
+   * Query Fix Explanation:
+   * - Previously, post and parent comment lookups used `filter: { id: PostId }` and
+   *   `filter: { id: CommentId }`, and update/delete used `{ id: comment.id }`.
+   * - Stripped `id` fields caused Mongoose to match the first document in the collection.
+   * - Fixed: Updated all filters to use `_id` (`{ _id: PostId }`, `{ _id: CommentId }`).
+   * =====================================================================================
+   */
   public CreateReplyComment = async (
     req: Request,
     res: Response,
   ): Promise<Response> => {
-    // ---- steps ---//
-    // step 1 : distruct the postID & CommentId
-    // step 2 : check for post and CommentId
-    // step 3 : upload attachments if there any in aws & insert the comment as Reply by butting {RepliedOn:Comment_ID}
-    // step 4 : send notification to Comment User
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    // step 1 ;
+    // Step 1: Extract parameters, body, and authenticated user
     const { PostId, CommentId }: Partial<I_CommentReply_Params_DTO> =
       req.params;
     const { content, files, tags, visibility }: I_CommentReply_Body_DTO =
       req.body;
     const user = this._GetAuthenticatedUser(req);
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    // step 2 ;
+
+    // Step 2: Validate that both the post and the target parent comment exist & are accessible
     const post = await this._PostRepository.findOne({
       filter: {
-        id: PostId as string,
+        _id: PostId as string,
         $or: Post_Utils.VisibilityQueryCheck(user),
       },
       options: { populate: "CreatedBy" },
     });
     const comment = await this._CommentRepository.findOne({
       filter: {
-        id: CommentId as string,
+        _id: CommentId as string,
         $or: Post_Utils.VisibilityQueryCheck(user),
       },
       options: { populate: "CreatedBy" },
     });
+
     if (!post) {
       throw new NotFoundExption("post not found");
     }
@@ -190,19 +202,8 @@ class CommentService {
       console.log(post.id, "is not", comment?.postId);
       throw new ConflictExption("this comment dont belong to this post");
     }
-    if ((post.CreatedBy as IUser).username) {
-      console.log("post populated successfly");
-    }
 
-    if ((comment.CreatedBy as IUser).username) {
-      console.log("comment populated successfly");
-    }
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    // step 3 ;
+    // Step 3: Upload reply attachments to S3 & insert reply comment (with RepliedOn set)
     const { folderId, S3_r } = await SendAssets_S3(
       files as Express.Multer.File[],
     );
@@ -218,6 +219,7 @@ class CommentService {
         CreatedBy: user.id,
       },
     });
+
     if (!result) {
       if (S3_r) {
         await this._AWS_S3.DeleteAssets({
@@ -226,9 +228,11 @@ class CommentService {
       }
       throw new BadRequstExption("fail to reply on comment");
     }
+
+    // Push reply ID to the parent comment's RepliedList
     const PushReply = await this._CommentRepository.updateOne({
       filter: {
-        id: comment.id as string,
+        _id: comment._id as Types.ObjectId,
       },
       update: {
         $push: { RepliedList: result._id },
@@ -236,17 +240,12 @@ class CommentService {
     });
     if (!PushReply) {
       await this._CommentRepository.DeleteOne({
-        id: result.id as string,
+        _id: result._id as Types.ObjectId,
       });
       throw new BadRequstExption("fail to push reply");
     }
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    // step 4 ;
-    // - send notification to tagged users
+
+    // Step 4: Send push notifications (to tagged users, parent comment author, and post author)
     if ((result.tags as string[]).length) {
       await this._FCM_Serives.SendNotifications({
         data: {
@@ -256,7 +255,6 @@ class CommentService {
         fcm_tokens: result.tags as string[],
       });
     }
-    // - send notification to comment creator that ReplayedOn
     if ((comment.CreatedBy as IUser).FCM_Token?.length) {
       await this._FCM_Serives.SendNotifications({
         data: {
@@ -266,7 +264,6 @@ class CommentService {
         fcm_tokens: (comment.CreatedBy as IUser).FCM_Token as string[],
       });
     }
-    // - send notification to post owner
     if ((post.CreatedBy as IUser).FCM_Token?.length) {
       await this._FCM_Serives.SendNotifications({
         data: {
@@ -276,17 +273,112 @@ class CommentService {
         fcm_tokens: (post.CreatedBy as IUser).FCM_Token as string[],
       });
     }
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
-    //----////----////----////----////----////----////----////----////----//
 
     return SuccessResponse({
       res,
       message: "you replayed on comment successfly",
       data: result,
     });
+  };
+
+  /**
+   * =====================================================================================
+   * Method: GetPostComments
+   * Purpose: Retrieve all top-level comments for a post (excluding replies) with visibility rules.
+   * =====================================================================================
+   */
+  public GetPostComments = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const { PostId }: Partial<I_GetPostComments_Params_DTO> = req.params;
+    const user = this._GetAuthenticatedUser(req);
+
+    // Fetch comments for this postId where RepliedOn is not set (top-level only)
+    const result = await this._CommentRepository.find({
+      filter: {
+        postId: PostId as string,
+        RepliedOn: { $exists: false },
+        $or: Post_Utils.VisibilityQueryCheck(user),
+      },
+      options: {
+        populate: "RepliedList",
+      },
+    });
+
+    if (!result) {
+      throw new BadRequstExption("fail to get the Comments ");
+    }
+    return SuccessResponse({ res, message: "done", data: result });
+  };
+
+  /**
+   * =====================================================================================
+   * Method: GetCommentReplies
+   * Purpose: Retrieve a specific comment by ID and populate its replies (RepliedList).
+   *
+   * Query Fix Explanation:
+   * - What was wrong:
+   *   The query used `filter: { id: PostId, ... }` and `filter: { id: CommentId, ... }`.
+   *   Since `id` is not in the Mongoose schema, `strictQuery: true` stripped out `id`.
+   *   This left only `{ $or: [...] }`, so MongoDB returned the FIRST document in the collection
+   *   regardless of the requested ID.
+   * - How we fixed it:
+   *   Changed filters to `{ _id: PostId }` and `{ _id: CommentId }`.
+   *   Added safe string ID comparison `post.id !== comment.postId?.toString()`.
+   * =====================================================================================
+   */
+  public GetCommentReplies = async (
+    req: Request,
+    res: Response,
+  ): Promise<Response> => {
+    const { PostId, CommentId }: Partial<I_GetCommentReplies_Params_DTO> =
+      req.params;
+    const user = await this._GetAuthenticatedUser(req);
+
+    // Step 1: Fetch and validate the post using _id
+    const post = await this._PostRepository.findOne({
+      filter: {
+        _id: PostId as string,
+        $or: Post_Utils.VisibilityQueryCheck(user),
+      },
+      options: { populate: "CreatedBy" },
+    });
+
+    // Step 2: Fetch and validate the comment using _id
+    const comment = await this._CommentRepository.findOne({
+      filter: {
+        _id: CommentId as string,
+        $or: Post_Utils.VisibilityQueryCheck(user),
+      },
+      options: { populate: "CreatedBy" },
+    });
+
+    if (!post) {
+      throw new NotFoundExption("post not found");
+    }
+    if (!comment) {
+      throw new NotFoundExption("Comment not found");
+    }
+    if (post.id !== comment.postId?.toString()) {
+      console.log(post.id, comment.postId);
+      throw new NotFoundExption("post or comment not found");
+    }
+
+    // Step 3: Fetch the comment with populated replies
+    const result = await this._CommentRepository.findOne({
+      filter: {
+        _id: comment._id as Types.ObjectId,
+      },
+      options: {
+        populate: "RepliedList",
+      },
+    });
+
+    if (!result) {
+      throw new BadRequstExption("fail to get comment replies");
+    }
+    return SuccessResponse({ res, message: "done", data: result });
   };
 }
 
