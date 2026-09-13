@@ -1,7 +1,7 @@
 import mongoose, { Schema, Types } from "mongoose";
 import { IUser } from "./User.model";
 import { PostEnum } from "../../Utils";
-import { React } from "./Post.model";
+import { IPost, React } from "./Post.model";
 import { Keys } from "../../Utils/AWS/types";
 
 // ------------------------------ Post Model ------------------------------\\
@@ -11,10 +11,11 @@ export interface IComment {
   // ---- post content
   _id: Types.ObjectId | string | undefined;
   id: Types.ObjectId | string | undefined;
-  postId: string | Types.ObjectId;
+  postId: string | IPost;
   content?: string | undefined;
   attachments?: Keys | undefined;
   visibility?: PostEnum.VisibilityEnum | undefined;
+  ReplayedOn?: string | IComment | undefined;
   // ---- fileId > id of attachments s3 bucket
   fileId?: string | undefined;
   // ---- post / users actions to post
@@ -48,7 +49,7 @@ const CommentSchema = new Schema<IComment>(
     },
     fileId: String,
     postId: {
-      type: String,
+      type: Types.ObjectId,
       ref: "Post",
       required: true,
     },
@@ -56,6 +57,11 @@ const CommentSchema = new Schema<IComment>(
       type: String,
       enum: PostEnum.VisibilityEnum,
       default: PostEnum.VisibilityEnum.Public,
+    },
+    ReplayedOn: {
+      type: Types.ObjectId,
+      ref: "Comment",
+      required: false,
     },
     //
     likes: {
@@ -71,7 +77,7 @@ const CommentSchema = new Schema<IComment>(
       required: false,
     },
     tags: {
-      type: [String],
+      type: [Types.ObjectId],
       ref: "User",
       required: false,
     },
@@ -79,6 +85,7 @@ const CommentSchema = new Schema<IComment>(
     CreatedBy: {
       type: Types.ObjectId,
       ref: "User",
+      required: true,
     },
     DeletedBy: Types.ObjectId,
     //

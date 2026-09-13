@@ -3,10 +3,9 @@ import {
   AWS_SERVICE,
   AwsEnum,
   BadRequstExption,
-  ConflictExption,
   NotFoundExption,
   NotificationService,
-  PostEnum,
+  Post_Utils,
   SuccessResponse,
   UnAuthroizedExption,
 } from "../../Utils";
@@ -21,21 +20,20 @@ import {
   I_RetrievePost_query_dto,
 } from "./post.dto";
 import { IPost, React } from "../../DB/models/Post.model";
-import { AnyKeys, Types } from "mongoose";
-import { QueryFilter } from "mongoose";
-import { UpdateQuery } from "mongoose";
 
-export function VisibilityQueryCheck(user: IUser) {
-  return [
-    { visibility: PostEnum.VisibilityEnum.Public },
-    { visibility: PostEnum.VisibilityEnum.Private, CreatedBy: user.id },
-    {
-      visibility: PostEnum.VisibilityEnum.Friends,
-      CreatedBy: { $in: [user.id, ...user.Friends] },
-    },
-    { tags: user.id },
-  ];
-}
+import { QueryFilter } from "mongoose";
+
+// export function VisibilityQueryCheck(user: IUser) {
+//   return [
+//     { visibility: PostEnum.VisibilityEnum.Public },
+//     { visibility: PostEnum.VisibilityEnum.Private, CreatedBy: user.id },
+//     {
+//       visibility: PostEnum.VisibilityEnum.Friends,
+//       CreatedBy: { $in: [user.id, ...user.Friends] },
+//     },
+//     { tags: user.id },
+//   ];
+// }
 
 class PostService {
   private _GetAuthenticatedUser = (req: Request): HUserDocument => {
@@ -128,7 +126,7 @@ class PostService {
     let result = updateQ[0]
       ? await this._PostRepository.updateOne({
           // check for post & Visibility
-          filter: { _id: postId, $or: VisibilityQueryCheck(user) },
+          filter: { _id: postId, $or: Post_Utils.VisibilityQueryCheck(user) },
           update:
             react > 0 ? updateQ[0] : { $pull: { likes: { _id: user._id } } },
         })
@@ -296,7 +294,7 @@ class PostService {
 
     // condition on query
     const filter: QueryFilter<IPost> = {
-      $or: VisibilityQueryCheck(user),
+      $or: Post_Utils.VisibilityQueryCheck(user),
     };
     if (postId) {
       filter._id = postId;

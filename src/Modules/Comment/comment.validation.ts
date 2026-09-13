@@ -27,3 +27,11 @@ export const CommentValidationSchema_Create = {
     PostId: GeneralFields.id,
   }),
 };
+
+export const CommentReplyValidationSchema = {
+  body: CommentValidationSchema_Create.body,
+  params: z.strictObject({
+    PostId: GeneralFields.id,
+    CommentId: GeneralFields.id,
+  }),
+};
