@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { BadRequstExption, ConflictExption } from "../response";
 import { readFileSync } from "node:fs";
-import { fileTypeFromBuffer } from "file-type";
+import {fileTypeFromBuffer } from "file-type"
 
 export const AllowedFileTypes = {
   photo: ["image/jpg", "image/png", "image/jpeg"],

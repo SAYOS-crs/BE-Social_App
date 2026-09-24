@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const serviceAccount = JSON.parse(
   readFileSync(
     resolve(
-      "./src/Config/social-app-382fc-firebase-adminsdk-fbsvc-daf6bd8424.json",
+      "./src/Config/social-app-382fc-firebase-adminsdk-fbsvc-1738a5da33.json",
     ),
     "utf-8",
   ),
@@ -19,4 +19,3 @@ const FireBaseApp =
       });
 
 export default FireBaseApp;
-
