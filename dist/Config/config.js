@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JWT_REFRESH_EXPIRES_IN = exports.JWT_ACCESS_EXPIRES_IN = exports.JWT_ADMIN_REFRESH_SECRET = exports.JWT_ADMIN_ACCESS_SECRET = exports.JWT_USER_REFRESH_SECRET = exports.JWT_USER_ACCESS_SECRET = exports.PASS = exports.EMAIL = exports.REDIS_URL = exports.SECRET_KEY = exports.IV_LENGTH = exports.SULT = exports.DB_URI = exports.PORT = void 0;
+exports.S3_SignedUrl_TTL = exports.S3_SECRET_KEY = exports.S3_SECRET_ID = exports.S3_BUCKET_NAME = exports.AWS_REGION = exports.JWT_REFRESH_EXPIRES_IN = exports.JWT_ACCESS_EXPIRES_IN = exports.JWT_ADMIN_REFRESH_SECRET = exports.JWT_ADMIN_ACCESS_SECRET = exports.JWT_USER_REFRESH_SECRET = exports.JWT_USER_ACCESS_SECRET = exports.CORS_WHITE_LIST = exports.PASS = exports.EMAIL = exports.REDIS_URL = exports.SECRET_KEY = exports.IV_LENGTH = exports.SULT = exports.DB_URI = exports.PORT = void 0;
 const dotenv_1 = require("dotenv");
 const node_path_1 = require("node:path");
 (0, dotenv_1.config)({
@@ -9,8 +9,6 @@ const node_path_1 = require("node:path");
         : "./dist/Config/prod.env"),
 });
 const GetENV = (key) => {
-    if (!key)
-        return undefined;
     return process.env[key];
 };
 // --------------- env attriputes
@@ -22,6 +20,7 @@ exports.SECRET_KEY = GetENV("SECRET_KEY");
 exports.REDIS_URL = GetENV("REDIS_URL") || "";
 exports.EMAIL = GetENV("EMAIL") || "";
 exports.PASS = GetENV("PASS") || "";
+exports.CORS_WHITE_LIST = GetENV("CORS_WHITE_LIST") || "";
 // ─── JWT ─────────────────────────────────────────────────────────────────────
 exports.JWT_USER_ACCESS_SECRET = GetENV("JWT_USER_ACCESS_SECRET");
 exports.JWT_USER_REFRESH_SECRET = GetENV("JWT_USER_REFRESH_SECRET");
@@ -29,3 +28,9 @@ exports.JWT_ADMIN_ACCESS_SECRET = GetENV("JWT_ADMIN_ACCESS_SECRET");
 exports.JWT_ADMIN_REFRESH_SECRET = GetENV("JWT_ADMIN_REFRESH_SECRET");
 exports.JWT_ACCESS_EXPIRES_IN = Number(GetENV("JWT_ACCESS_EXPIRES_IN"));
 exports.JWT_REFRESH_EXPIRES_IN = Number(GetENV("JWT_REFRESH_EXPIRES_IN"));
+// ---- AWS ----------------------------------------------------------------------
+exports.AWS_REGION = GetENV("AWS_REGION");
+exports.S3_BUCKET_NAME = GetENV("S3_BUCKET_NAME");
+exports.S3_SECRET_ID = GetENV("S3_SECRET_ID");
+exports.S3_SECRET_KEY = GetENV("S3_SECRET_KEY");
+exports.S3_SignedUrl_TTL = Number(GetENV("S3_SignedUrl_TTL"));

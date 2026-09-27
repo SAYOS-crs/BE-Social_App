@@ -5,6 +5,10 @@ const Utils_1 = require("../Utils");
 function Validation(schema) {
     return (req, res, next) => {
         const ErrorResults = [];
+        if (req.files) {
+            req.body.files = req.files;
+            console.log(req.body);
+        }
         for (const key of Object.keys(schema)) {
             if (!schema[key])
                 continue;

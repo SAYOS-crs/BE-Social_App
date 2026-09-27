@@ -12,10 +12,13 @@ const Connection_1 = require("./DB/Connection");
 const Utils_1 = require("./Utils");
 const chalk_1 = __importDefault(require("chalk"));
 const User_1 = require("./Modules/User");
+const Post_1 = require("./Modules/Post");
+const cors_1 = __importDefault(require("cors"));
 async function bootstrap() {
     const app = (0, express_1.default)();
     // globale middlewares
     app.use(express_1.default.json());
+    app.use((0, cors_1.default)());
     //DB connections :
     (0, Connection_1.ConnectMongooseDB)();
     (0, Connection_1.ConnectRedisDB)();
@@ -26,13 +29,22 @@ async function bootstrap() {
     // routers :
     app.use("/api/v1/auth", Modules_1.AuthRouter);
     app.use("/api/v1/user", User_1.UserRouter);
+    app.use("/api/v1/post", Post_1.PostRouter);
     // not found router handler
     app.use("/*dummy", (req, res, next) => {
         throw new Utils_1.NotFoundExption("Router not found!");
     });
     // global error handler - must be registered AFTER all routes
     app.use(Middlewares_1.GlobaleErrorExption);
-    app.listen(config_1.PORT, () => {
+    app.listen(config_1.PORT, (err) => {
+        if (err && config_1.PORT) {
+            let NewPORT = config_1.PORT + 1;
+            app.listen(NewPORT, () => {
+                console.log(chalk_1.default.green(`${chalk_1.default.red(`port ${config_1.PORT} is UnAvailable `)} , Server is running of port : ${chalk_1.default.blue(NewPORT)}`));
+                return;
+            });
+            return;
+        }
         console.log(chalk_1.default.green(`Server is running of port : ${chalk_1.default.blue(config_1.PORT)}`));
     });
 }

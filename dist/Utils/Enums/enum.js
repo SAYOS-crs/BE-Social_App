@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TokenType = exports.Providers = exports.Rolle = exports.Gender = void 0;
+exports.StorageAprotches = exports.TokenType = exports.Providers = exports.Rolle = exports.Gender = void 0;
 var Gender;
 (function (Gender) {
     Gender["Male"] = "Male";
@@ -22,3 +22,8 @@ var TokenType;
     TokenType["Access"] = "Access";
     TokenType["Refresh"] = "Refresh";
 })(TokenType || (exports.TokenType = TokenType = {}));
+var StorageAprotches;
+(function (StorageAprotches) {
+    StorageAprotches[StorageAprotches["Memory"] = 0] = "Memory";
+    StorageAprotches[StorageAprotches["Disk"] = 1] = "Disk";
+})(StorageAprotches || (exports.StorageAprotches = StorageAprotches = {}));

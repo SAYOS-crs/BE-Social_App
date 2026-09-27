@@ -75,7 +75,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     // images
     UserImage: String,
-    CoverImage: String,
+    CoverImage: [String],
     //Enums
     Gender: {
         type: String,
@@ -94,6 +94,18 @@ const UserSchema = new mongoose_1.Schema({
         default: Utils_1.Enums.Providers.System,
     },
     ChangeCradintials: Date,
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
+    Friends: {
+        type: [String],
+        ref: "User",
+        required: false,
+    },
+    FCM_Token: {
+        type: [String],
+    },
 }, {
     collection: "User_Collection",
     timestamps: true,
@@ -108,5 +120,44 @@ UserSchema.virtual("username")
     .get(function () {
     return `${this.firstName} ${this.lastName}`;
 });
+//
+//
+//
+//
+// decment middleware that hash the passowrd before save the doc.
+UserSchema.pre("save", async function () {
+    this.wasNew = this.isNew;
+    if (this.isModified("Password") || this.isNew) {
+        this.Password = await Utils_1.HashingService.Hash(this.Password);
+        this.phone = await Utils_1.EncryptionService.Encrypt(this.phone);
+    }
+});
+// UserSchema.post(
+//   "save",
+//   async function (this: HUserDocument & { wasNew: boolean }) {
+//     const that = this;
+//     if (that.wasNew) {
+//       console.log(that.wasNew);
+//     }
+//   },
+// );
+// query middleware that insure the search dose not include the doc are softDeleted.
+UserSchema.pre("findOne", function () {
+    this.where({ isDeleted: false });
+});
+// docment middleware that hash the password in update case + its docment middleware bcz we use { document: true }.
+UserSchema.pre("updateOne", { document: true }, async function () {
+    if (this.isModified("Password") && !this.isNew) {
+        this.Password = await Utils_1.HashingService.Hash(this.Password);
+    }
+    if (this.isModified("phone") && !this.isNew) {
+        this.phone = await Utils_1.EncryptionService.Encrypt(this.phone);
+    }
+});
 const UserModel = mongoose_1.default.model("User", UserSchema);
 exports.default = UserModel;
+// important nots :
+//
+// // general nots :-
+// - note : _id taype of ObjectId / id type of string
+// - you can active the id on the doc by id:true but it will be virtual mean you can't see it in mongoo campos

@@ -18,6 +18,7 @@ import { HUserDocument } from "../../DB/models/User.model";
 import { promisify } from "node:util";
 import { pipeline } from "node:stream";
 import { DeletedObject } from "@aws-sdk/client-s3";
+import { log } from "node:console";
 const S3_ReadStream = promisify(pipeline);
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -250,7 +251,8 @@ export class UserService {
     // - cors header
     res.set("Cross-Origin-Resource-Policy", "cross-origin");
     // - download header if true it will download the assets
-    if (download === "true") {
+    if (download == "true") {
+      log("file downloading ...")
       // - Content-type header
       res.setHeader("Content-Type", ContentType || "application/octet-stream");
       res.setHeader(

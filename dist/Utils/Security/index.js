@@ -17,7 +17,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HashingService = exports.EncryptionService = exports.JWTService = void 0;
+exports.FileFilter = exports.HashingService = exports.EncryptionService = exports.JWTService = void 0;
 var JWT_service_1 = require("./JWT.service");
 Object.defineProperty(exports, "JWTService", { enumerable: true, get: function () { return __importDefault(JWT_service_1).default; } });
 var Encryption_service_1 = require("./Encryption.service");
@@ -26,3 +26,6 @@ var hashing_service_1 = require("./hashing.service");
 Object.defineProperty(exports, "HashingService", { enumerable: true, get: function () { return __importDefault(hashing_service_1).default; } });
 __exportStar(require("./JWT.service"), exports); // re-export ITokenPayload, ITokenPair
 __exportStar(require("./OTP.service"), exports); // re-export GenerateOTP, OTP_Creator
+var MagicNumbers_1 = require("./MagicNumbers");
+Object.defineProperty(exports, "FileFilter", { enumerable: true, get: function () { return __importDefault(MagicNumbers_1).default; } });
+__exportStar(require("./MagicNumbers"), exports);

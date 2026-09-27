@@ -5,8 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const Utils_1 = require("../../Utils");
 const User_Repository_1 = __importDefault(require("../../DB/Repository/User.Repository"));
-const hashing_service_1 = __importDefault(require("../../Utils/Security/hashing.service"));
-const Encryption_service_1 = __importDefault(require("../../Utils/Security/Encryption.service"));
 const Email_templet_1 = require("../../Utils/Email/Email.templet");
 class AuthService {
     _UserRepository = new User_Repository_1.default();
@@ -22,13 +20,13 @@ class AuthService {
         }
         // -------------------------------------
         // insert User
-        const result = await this._UserRepository.insertOne({
+        const result = await this._UserRepository.Create({
             data: {
                 Email,
                 Gender,
-                Password: await hashing_service_1.default.Hash(Password),
+                Password,
                 address,
-                phone: await Encryption_service_1.default.Encrypt(phone),
+                phone,
                 username,
             },
         });

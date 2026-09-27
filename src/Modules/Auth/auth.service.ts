@@ -22,6 +22,7 @@ import EncryptionService, {
 import { EmailType } from "../../Utils/Email/Email.templet";
 import RedisService from "../../DB/RedisRepository";
 import { HUserDocument, IUser } from "../../DB/models/User.model";
+import { log } from "console";
 
 class AuthService {
   private _UserRepository = new UserRepository();

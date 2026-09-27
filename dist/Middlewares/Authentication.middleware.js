@@ -22,6 +22,8 @@ const Authentication = (tokenType) => {
                 throw new Utils_2.UnAuthroizedExption("Authorization header is required");
             // decode: verify the token and retrieve the authenticated user
             const { user, decoded } = await Utils_1.JWTService.Decode(authorization, tokenType);
+            if (!user || !decoded)
+                throw new Utils_1.NotFoundExption("User not Found : authentication middleware");
             // attach user and decoded payload to the request for downstream handlers
             req.user = user;
             req.decoded = decoded;

@@ -23,15 +23,19 @@ class EncryptionService {
         let EncryptedData = Encryption.update(content, "utf-8", "hex");
         // 4. final statge and return
         EncryptedData += Encryption.final("hex");
-        return `${iv.toString("hex")}:${EncryptedData} `;
+        // --- ** setting the auth tage for aes-256-gcm
+        const authTag = Encryption.getAuthTag().toString('hex');
+        return `${iv.toString("hex")}:${authTag}:${EncryptedData} `;
     }
     DeCrypt(CipherContent) {
         // 1. distruct the iv and Decrypted content] from prametar
-        const [string_iv, content] = CipherContent.split(":");
+        const [ivHex, authTag, content] = CipherContent.trim().split(":");
         // 2. convert the iv to buffer  > form utf-8 to hex using buffer
-        const iv = Buffer.from(string_iv, "hex");
+        const iv = Buffer.from(ivHex, "hex");
         // 3. create decode method using algorethem , secret key , iv
         const DeCryption = node_crypto_1.default.createDecipheriv("aes-256-gcm", this._SecretKey, iv);
+        // --- ** setting the auth tage for aes-256-gcm
+        DeCryption.setAuthTag(Buffer.from(authTag, "hex"));
         // 4. use the decode method and its take the data and cruunt form and what will be
         let DeCryptedData = DeCryption.update(content, "hex", "utf-8");
         // final statge and return

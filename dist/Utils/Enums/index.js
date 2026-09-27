@@ -36,6 +36,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Enums = void 0;
+exports.AwsEnum = exports.PostEnum = exports.Enums = void 0;
 exports.Enums = __importStar(require("./enum"));
 __exportStar(require("./enum"), exports); // named exports — allows: import { TokenType, Rolle, ... }
+exports.PostEnum = __importStar(require("./PostEnums"));
+exports.AwsEnum = __importStar(require("./AWS.enum"));

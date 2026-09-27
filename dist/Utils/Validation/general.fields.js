@@ -35,11 +35,16 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeneralFields = void 0;
 const z = __importStar(require("zod"));
+const Enums_1 = require("../Enums");
+const mongoose_1 = require("mongoose");
 /**
  * General reusable Zod fields for validation across all modules.
  * Import these fields to compose schemas instead of duplicating validation logic.
  */
 exports.GeneralFields = {
+    id: z
+        .string()
+        .refine((v) => mongoose_1.Types.ObjectId.isValid(v), { error: "id in not valid" }),
     Email: z
         .string({ message: "Email is required" })
         .email("Invalid email format")
@@ -57,4 +62,37 @@ exports.GeneralFields = {
     OTP: z
         .string({ message: "OTP is required" })
         .length(6, "OTP must be exactly 6 characters"),
+    content: z.string(),
+    visibility: z.enum(Enums_1.PostEnum.VisibilityEnum),
+    fileId: z.string(),
+    // last stand was her : the problem was the (tags , likes) expected array but recivied string
+    // hint : so we need to make (tags , likes) exept array | string
+    // and also we have proplem in file validation
+    tags: z.union([z.array(z.string()), z.string()]),
+    likes: z.union([z.array(z.string()), z.string()]),
+    file: function (mimtype) {
+        return z
+            .strictObject({
+            fieldname: z.string(),
+            originalname: z.string(),
+            encoding: z.string(),
+            mimetype: z.enum(mimtype, { error: "file type not allowed" }),
+            buffer: z.any().optional(),
+            path: z.string().optional(),
+            size: z.number(),
+        })
+            .superRefine((values, ctx) => {
+            if (!values.path && !values.buffer) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["path", "buffer"],
+                    message: `there is not path or buffer from file }`,
+                });
+            }
+        });
+    },
+    react: z.coerce.number().refine((v) => {
+        // this is how to make sure react number is in the enum of reacts
+        return Object.values(Enums_1.PostEnum.PostReactEnum).includes(Number(v));
+    }, { error: "react number not valid" }),
 };
