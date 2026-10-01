@@ -1,27 +1,22 @@
-import { Request, Response } from "express";
+import { randomUUID } from "node:crypto";
+import { PostRepository, UserRepository } from "../../DB/Repository";
+import { HPostDocument, IPost, React } from "../../DB/models/Post.model";
+import { IUser } from "../../DB/models/User.model";
 import {
   AWS_SERVICE,
   AwsEnum,
-  BadRequstExption,
-  NotFoundExption,
   NotificationService,
   Post_Utils,
-  SuccessResponse,
-  UnAuthroizedExption,
 } from "../../Utils";
-import { randomUUID } from "node:crypto";
-import { PostRepository, UserRepository } from "../../DB/Repository";
-import { HUserDocument, IUser } from "../../DB/models/User.model";
 import {
   I_CreatePost_dto,
   I_PostReact_params_dto,
   I_PostReact_query_dto,
-  I_RetrievePost_params_dto,
-  I_RetrievePost_query_dto,
+  RetrievePost_dto,
 } from "./post.dto";
-import { IPost, React } from "../../DB/models/Post.model";
 
 import { QueryFilter } from "mongoose";
+import { log } from "node:console";
 
 // export function VisibilityQueryCheck(user: IUser) {
 //   return [
@@ -36,12 +31,6 @@ import { QueryFilter } from "mongoose";
 // }
 
 class PostService {
-  private _GetAuthenticatedUser = (req: Request): HUserDocument => {
-    if (!req.user) {
-      throw new UnAuthroizedExption("User is not authenticated");
-    }
-    return req.user;
-  };
   // private _GetAuthorizedFile = (req: Request): Express.Multer.File => {
   //   if (!req.file) {
   //     throw new BadRequstExption("file not receved !");
@@ -65,17 +54,17 @@ class PostService {
   //
   //
   //
-  public reactOnPost = async (
-    req: Request,
-    res: Response,
-  ): Promise<Response> => {
+  public reactOnPost = async ({
+    user,
+    postId,
+    react = 0,
+  }: I_PostReact_params_dto &
+    I_PostReact_query_dto & { user: IUser }): Promise<Boolean> => {
     // step 1 : get (id) and (react )
-    const { postId }: Partial<I_PostReact_params_dto> = req.params;
-    const { react = 0 }: Partial<I_PostReact_query_dto> = req.query;
-    const user = this._GetAuthenticatedUser(req);
-    if (!postId) {
-      throw new BadRequstExption("post id is required");
-    }
+    // const { postId }: Partial<I_PostReact_params_dto> = req.params;
+    // const { react = 0 }: Partial<I_PostReact_query_dto> = req.query;
+    // const user = this._GetAuthenticatedUser(req);
+
     //
     //
     //
@@ -83,8 +72,9 @@ class PostService {
     const post: IPost | null = await this._PostRepository.findById({
       id: postId,
     });
+
     if (!post) {
-      throw new NotFoundExption("post not found");
+      return false;
     }
 
     // step 3 : prepare the query condition
@@ -133,33 +123,28 @@ class PostService {
       : null;
 
     // if !result?.modifiedCount that mean the filter didnt match
-    if (!result?.modifiedCount && result !== null) {
-      throw new NotFoundExption("post not found");
+    if (!result?.modifiedCount) {
+      return false;
     }
     // short hand condition for custom message.
-    return SuccessResponse<any>({
-      res,
-      message:
-        result === null
-          ? "User already liked this post with the same react !"
-          : "done",
-      data: {
-        result,
-      },
-    });
+    return true;
   };
   // -------------------------------------------------
   //
   //
   //
-  public createPost = async (
-    req: Request,
-    res: Response,
-  ): Promise<Response> => {
+  public createPost = async ({
+    user,
+    content,
+    files,
+    visibility,
+    tags,
+  }: I_CreatePost_dto & { user: IUser }): Promise<
+    HPostDocument | undefined
+  > => {
     //  * =====> step 1 : collect the docu data
     // get user by user Guard
-    const user = this._GetAuthenticatedUser(req);
-    let { content, files, visibility, tags }: I_CreatePost_dto = req.body;
+
     // create fileId
     const fileId = randomUUID();
     // log check
@@ -188,16 +173,17 @@ class PostService {
     //  * =====> step 3 : Create Post document via PostRepository
     // console.log("s3 result =:", s3_r);
 
-    const result = await this._PostRepository.insertOne({
-      data: {
-        content,
-        fileId: s3_r ? fileId : undefined,
-        visibility,
-        tags,
-        attachments: s3_r,
-        CreatedBy: user.id,
-      },
-    });
+    const result: HPostDocument | undefined =
+      await this._PostRepository.insertOne({
+        data: {
+          content,
+          fileId: s3_r ? fileId : undefined,
+          visibility,
+          tags,
+          attachments: s3_r,
+          CreatedBy: user.id,
+        },
+      });
     // log check
     // console.log("create post result", result);
     //
@@ -269,27 +255,31 @@ class PostService {
       // }
     }
 
-    return SuccessResponse<typeof result>({
-      res,
-      message: "post created successfly",
-      data: result,
-    });
+    if (!result) {
+      log(result);
+      return undefined;
+    }
+
+    return result;
   };
   // -------------------------------------------------
   //
   //
   //
-  public retrievePosts = async (
-    req: Request,
-    res: Response,
-  ): Promise<Response> => {
-    const { postId }: Partial<I_RetrievePost_params_dto> = req.params;
-    const { limit = 10, page = 1 }: Partial<I_RetrievePost_query_dto> =
-      req.query;
-    const user = this._GetAuthenticatedUser(req);
+  public retrievePosts = async ({
+    user,
+    limit = 10,
+    page = 1,
+    postId,
+  }: {
+    user: IUser;
+    limit?: number | undefined;
+    page?: number | undefined;
+    postId?: string | undefined;
+  }): Promise<RetrievePost_dto | undefined> => {
     // limit is alwayes = 10
     // page is always = 1 > to decremnt it by 1 so if it = (2 - 1 = 1) * (10 limit) = 10 skip
-    const skip = (limit as number) * ((page as number) - 1);
+    const skip = Number(limit) * (Number(page) - 1);
     // page must be decremnt by -1  ? to make the count from 1 not 0
 
     // condition on query
@@ -302,42 +292,45 @@ class PostService {
     // important note ! : i separated the filter from find with const to make condition that
     // manage if the postId is exist findit if not get all posts
     // and that called the logical query condition and have many useCases
-    const result: IPost | IPost[] = await this._PostRepository.find({
-      filter,
-      // undefined = posts
-      // new Types.ObjectId(id) = one post by id
-      options: {
-        skip: skip as number,
-        // page = 1 that mean skip = 0
-        // page = 2 that mean skip = 10
-        limit: limit as number,
+    const result: IPost | IPost[] | undefined = await this._PostRepository.find(
+      {
+        filter,
+        // undefined = posts
+        // new Types.ObjectId(id) = one post by id
+        options: {
+          skip: skip as number,
+          // page = 1 that mean skip = 0
+          // page = 2 that mean skip = 10
+          limit: limit as number,
+        },
       },
-    });
+    );
 
-    return SuccessResponse<any>({
-      res,
-      message: "done",
-      data: {
-        result,
-        count: (result as []).length,
-        // posts count
-        Page_Number: (result as []).length > 1 ? (page as number) : undefined,
-        // page number
-        from: (result as []).length > 1 ? skip : undefined,
-        // starting point
-        to:
-          (result as []).length > 1 ? skip + (result as []).length : undefined,
-        // end point = skip (the start ) + post count (how musth forward)
-        //
-        //
-        // (result as []).length > 1 ? ... : undefined  >>> for if the result was one doc
-      },
-    });
+    if (!result) {
+      return undefined;
+    }
+
+    return {
+      count: (result as []).length,
+      // posts count
+      Page_Number: (result as []).length > 1 ? (page as number) : undefined,
+      // page number
+      from: (result as []).length > 1 ? skip : undefined,
+      // starting point
+      to: (result as []).length > 1 ? skip + (result as []).length : undefined,
+
+      result,
+      // end point = skip (the start ) + post count (how musth forward)
+      //
+      //
+      // (result as []).length > 1 ? ... : undefined  >>> for if the result was one doc
+    };
+
+    // -------------------------------------------------
+    //
+    //
+    //
   };
-  // -------------------------------------------------
-  //
-  //
-  //
 }
 
 export default new PostService();
