@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types } from "mongoose";
-import { IUser } from "./User.model";
 import { PostEnum } from "../../Utils";
+import { IUser } from "./User.model";
 
 // ------------------------------ Post Model ------------------------------\\
 export type React = {
@@ -25,8 +25,8 @@ export interface IPost {
   CreatedBy: Types.ObjectId | IUser | string;
   DeletedBy?: Types.ObjectId | IUser | string | undefined;
   // ---- actions At
-  CreatedAt: Date;
-  UpdatedAt?: Date | undefined;
+  createdAt: Date;
+  updatedAt?: Date | undefined;
   DeletedAt?: Date | undefined;
 }
 export type HPostDocument = mongoose.HydratedDocument<IPost>;
@@ -79,9 +79,10 @@ const PostSchema = new Schema<IPost>(
     },
     DeletedBy: Types.ObjectId,
     //
-    CreatedAt: Date,
+    // super note : dont set (CreatedAt , UpdatedAt) in the schema cuz mongoose handel it manual , and if you did it will case naming duplication !!
+    // CreatedAt: Date,
+    // UpdatedAt: Date,
     DeletedAt: Date,
-    UpdatedAt: Date,
   },
   {
     // strictPopulate: false,

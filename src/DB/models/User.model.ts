@@ -37,8 +37,9 @@ export interface IUser {
   Providers: Enums.Providers;
   // timestamp
   ChangeCradintials?: Date;
-  CreatedAt: Date;
-  UpdatedAt?: Date;
+  // super note : naming createdAt - updatedAt like that cuz the timestamp option generate it like that
+  createdAt: Date;
+  updatedAt?: Date;
   isDeleted?: boolean;
 }
 

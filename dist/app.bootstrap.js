@@ -4,29 +4,55 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = bootstrap;
-const express_1 = __importDefault(require("express"));
-const config_1 = require("./Config/config");
-const Modules_1 = require("./Modules");
-const Middlewares_1 = require("./Middlewares");
-const Connection_1 = require("./DB/Connection");
-const Utils_1 = require("./Utils");
 const chalk_1 = __importDefault(require("chalk"));
-const User_1 = require("./Modules/User");
-const Post_1 = require("./Modules/Post");
 const cors_1 = __importDefault(require("cors"));
+const express_1 = __importDefault(require("express"));
+const express_2 = require("graphql-http/lib/use/express");
+const config_1 = require("./Config/config");
+const Connection_1 = require("./DB/Connection");
+const Middlewares_1 = require("./Middlewares");
+const Modules_1 = require("./Modules");
+const GraphQL_1 = require("./Modules/GraphQL");
+const Post_1 = require("./Modules/Post");
+const User_1 = require("./Modules/User");
+const Utils_1 = require("./Utils");
 async function bootstrap() {
     const app = (0, express_1.default)();
-    // globale middlewares
+    //// ==========\\ globale middlewares // ==========\\
     app.use(express_1.default.json());
     app.use((0, cors_1.default)());
-    //DB connections :
+    //
+    //
+    //
+    //
+    //
+    // // ==========\\ DB connections // ==========\\
     (0, Connection_1.ConnectMongooseDB)();
     (0, Connection_1.ConnectRedisDB)();
     // SendOTP({
     //   Email: "eslam.sayos.crm.ki123@gmail.com",
     //   EmailType: EmailType.ConfirmEmail,
     // });
-    // routers :
+    //
+    //
+    //
+    //
+    // =========================\\ routers // =========================\\
+    //
+    //
+    // ==========\\ GraphQL API // ==========\\
+    // gql handler
+    //
+    // ** GraphQL Step 1 : create gql api + handler
+    app.all("/api/v1/graphql", (0, express_2.createHandler)({
+        schema: GraphQL_1.GQLschema,
+        async context(req, params) {
+            return { headers: req.headers };
+        },
+    }));
+    // ===========================================\\
+    //
+    // RestFull APIs
     app.use("/api/v1/auth", Modules_1.AuthRouter);
     app.use("/api/v1/user", User_1.UserRouter);
     app.use("/api/v1/post", Post_1.PostRouter);

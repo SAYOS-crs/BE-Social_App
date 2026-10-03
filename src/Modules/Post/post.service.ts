@@ -292,34 +292,33 @@ class PostService {
     // important note ! : i separated the filter from find with const to make condition that
     // manage if the postId is exist findit if not get all posts
     // and that called the logical query condition and have many useCases
-    const result: IPost | IPost[] | undefined = await this._PostRepository.find(
-      {
-        filter,
-        // undefined = posts
-        // new Types.ObjectId(id) = one post by id
-        options: {
-          skip: skip as number,
-          // page = 1 that mean skip = 0
-          // page = 2 that mean skip = 10
-          limit: limit as number,
-        },
+    const data: IPost | IPost[] | undefined = await this._PostRepository.find({
+      filter,
+      // undefined = posts
+      // new Types.ObjectId(id) = one post by id
+      options: {
+        skip: skip as number,
+        // page = 1 that mean skip = 0
+        // page = 2 that mean skip = 10
+        limit: limit as number,
       },
-    );
+    });
 
-    if (!result) {
+    if (!data) {
       return undefined;
     }
 
     return {
-      count: (result as []).length,
-      // posts count
-      Page_Number: (result as []).length > 1 ? (page as number) : undefined,
-      // page number
-      from: (result as []).length > 1 ? skip : undefined,
-      // starting point
-      to: (result as []).length > 1 ? skip + (result as []).length : undefined,
-
-      result,
+      metaData: {
+        count: (data as []).length,
+        // posts count
+        Page_Number: (data as []).length > 1 ? (page as number) : undefined,
+        // page number
+        from: (data as []).length > 1 ? skip : undefined,
+        // starting point
+        to: (data as []).length > 1 ? skip + (data as []).length : undefined,
+      },
+      data,
       // end point = skip (the start ) + post count (how musth forward)
       //
       //
