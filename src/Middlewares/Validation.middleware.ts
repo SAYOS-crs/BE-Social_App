@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { ZodError, ZodType } from "zod";
+import { GraphQLError } from "graphql";
+import { log } from "node:console";
+import z, { ZodError, ZodType } from "zod";
 import { ConflictExption } from "../Utils";
 
 interface ValidationSchema {
@@ -33,4 +35,13 @@ export default function Validation(schema: ValidationSchema) {
     }
     next();
   };
+}
+export function GqlValidation<T>(schema: z.ZodType, data: T): void | never {
+  const result = schema.safeParse(data);
+  log("GraphQL Validation Result :", result);
+  if (!result.success) {
+    throw new GraphQLError("Validation error", { cause: result.error.issues });
+  }
+
+  return;
 }

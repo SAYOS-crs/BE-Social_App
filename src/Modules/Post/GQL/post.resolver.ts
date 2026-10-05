@@ -1,8 +1,10 @@
 import { GraphQLError } from "graphql";
 import { log } from "node:console";
-import { JWTService, TokenType } from "../../../Utils";
-import PostService from "../post.service";
+import { GqlAuthorization, GqlValidation } from "../../../Middlewares";
 
+import { JWTService, Rolle, TokenType } from "../../../Utils";
+import PostService from "../post.service";
+import * as GqlPostValidationSchema from "./post.validation.gql";
 class PostResolver {
   private readonly PostSerives;
   private readonly Authentication;
@@ -10,14 +12,31 @@ class PostResolver {
     this.PostSerives = PostService;
     this.Authentication = JWTService;
   }
-  GetPosts = async (parent: any, args: any, payloud: any) => {
-    const { user, decoded } = await this.Authentication.Decode(
+  GetPosts = async (
+    parent: any,
+    args: GqlPostValidationSchema.GetPostsArgsType,
+    payloud: any,
+  ) => {
+    const { user } = await this.Authentication.Decode(
       payloud.headers.authorization,
       TokenType.Access,
     );
+    const AuthResult = GqlAuthorization([Rolle.User], user);
+    if (!AuthResult) {
+      throw new GraphQLError("User not Authorized to this query");
+    }
     log("decoded user from graphql resolver :", user);
+    // manule validation / take type + zod schema + data
+    GqlValidation<GqlPostValidationSchema.GetPostsArgsType>(
+      GqlPostValidationSchema.GetPostsArgs,
+      args,
+    );
+
     const result = await this.PostSerives.retrievePosts({
       user,
+      postId: args.postId,
+      limit: args.limit,
+      page: args.page,
     });
     if (!result) {
       throw new GraphQLError("error while retrieve posts");

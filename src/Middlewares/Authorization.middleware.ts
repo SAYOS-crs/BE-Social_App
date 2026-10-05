@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
+import { IUser } from "../DB/models/User.model";
 import { Enums, ForbiddenExption, UnAuthroizedExption } from "../Utils";
 
 /**
  * Authorization Middleware Factory
- * 
+ *
  * Takes an array of allowed roles (`roles`) that can access a specific route.
  * Must be placed after the `Authentication` middleware in the route chain,
  * as it relies on `req.user` being populated.
@@ -21,7 +22,9 @@ const Authorization = (roles: Enums.Rolle[]) => {
 
       // Check if user's role (req.user.Rolle) is included in the allowed roles array
       if (!roles.includes(req.user.Rolle)) {
-        throw new ForbiddenExption("You are not authorized to access this route");
+        throw new ForbiddenExption(
+          "You are not authorized to access this route",
+        );
       }
 
       next();
@@ -29,6 +32,17 @@ const Authorization = (roles: Enums.Rolle[]) => {
       next(error);
     }
   };
+};
+
+export const GqlAuthorization = (
+  roles: Enums.Rolle[],
+  user: IUser,
+): Boolean => {
+  // Check if user's role (user.Rolle) is included in the allowed roles array
+  if (!roles.includes(user.Rolle)) {
+    return false;
+  }
+  return true;
 };
 
 export default Authorization;

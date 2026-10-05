@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.GqlAuthorization = void 0;
 const Utils_1 = require("../Utils");
 /**
  * Authorization Middleware Factory
@@ -29,4 +30,12 @@ const Authorization = (roles) => {
         }
     };
 };
+const GqlAuthorization = (roles, user) => {
+    // Check if user's role (user.Rolle) is included in the allowed roles array
+    if (!roles.includes(user.Rolle)) {
+        return false;
+    }
+    return true;
+};
+exports.GqlAuthorization = GqlAuthorization;
 exports.default = Authorization;

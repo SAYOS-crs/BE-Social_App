@@ -34,9 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeneralFields = void 0;
+const mongoose_1 = require("mongoose");
 const z = __importStar(require("zod"));
 const Enums_1 = require("../Enums");
-const mongoose_1 = require("mongoose");
 /**
  * General reusable Zod fields for validation across all modules.
  * Import these fields to compose schemas instead of duplicating validation logic.
@@ -70,6 +70,8 @@ exports.GeneralFields = {
     // and also we have proplem in file validation
     tags: z.union([z.array(z.string()), z.string()]),
     likes: z.union([z.array(z.string()), z.string()]),
+    page: z.coerce.number().optional(),
+    limit: z.coerce.number().optional(),
     file: function (mimtype) {
         return z
             .strictObject({

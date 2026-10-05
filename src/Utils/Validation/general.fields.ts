@@ -1,6 +1,6 @@
+import { Types } from "mongoose";
 import * as z from "zod";
 import { PostEnum } from "../Enums";
-import { Types } from "mongoose";
 
 /**
  * General reusable Zod fields for validation across all modules.
@@ -40,7 +40,8 @@ export const GeneralFields = {
   // and also we have proplem in file validation
   tags: z.union([z.array(z.string()), z.string()]),
   likes: z.union([z.array(z.string()), z.string()]),
-
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
   file: function (mimtype: string[]) {
     return z
       .strictObject({
