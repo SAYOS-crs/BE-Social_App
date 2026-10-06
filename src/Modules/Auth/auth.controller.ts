@@ -1,16 +1,20 @@
 import { Request, Response, Router } from "express";
 import { HUserDocument } from "../../DB/models/User.model";
+import { Authentication } from "../../Middlewares";
 import Validation from "../../Middlewares/Validation.middleware";
-import { BadRequstExption, ITokenPair, SuccessResponse } from "../../Utils";
 import {
-  I_AuthLoginDTO,
-  I_AuthSendConfirmEmailDTO,
-  I_AuthSignUpDTO,
-} from "./auth.dto";
+  BadRequstExption,
+  ConflictExption,
+  Guard,
+  ITokenPair,
+  SuccessResponse,
+  TokenType,
+} from "../../Utils";
+import { I_AuthLoginDTO, I_AuthSignUpDTO } from "./auth.dto";
 import authService from "./auth.service";
 import {
+  ConfirmEmailSchema,
   LoginSchema,
-  SendConfirmationEmailsSchema,
   SignupSchema,
 } from "./auth.validation";
 
@@ -62,12 +66,17 @@ router.post(
   },
 );
 
+// user how will confirm email &
 router.post(
-  "/SendConfirmationEmail",
-  Validation(SendConfirmationEmailsSchema),
+  "/RequestEmailConfirmation",
+  Authentication(TokenType.Access),
   async (req: Request, res: Response): Promise<Response> => {
-    const { Email }: I_AuthSendConfirmEmailDTO = req.body;
-    const result = await authService.SendConfirmEmail({ Email });
+    const { Email, confirmEmail } = Guard.GetAuthenticatedUser(req);
+    // check if the email is confirmed already
+    if (confirmEmail) {
+      throw new ConflictExption("Email already Confirmed ");
+    }
+    const result = await authService.RequestEmailConfirmation({ Email });
     if (!result) {
       throw new BadRequstExption("error while sending email OTP");
     }
@@ -77,5 +86,26 @@ router.post(
     });
   },
 );
-router.patch("/ConfirmEmail", authService.ConfirmEmail);
+
+router.patch(
+  "/ConfirmEmail",
+  Authentication(TokenType.Access),
+  Validation(ConfirmEmailSchema),
+  async (req: Request, res: Response): Promise<Response> => {
+    const { Email, confirmEmail } = Guard.GetAuthenticatedUser(req);
+    if (confirmEmail) {
+      throw new BadRequstExption("email already Confirmed");
+    }
+    const { OTP }: { OTP: string } = req.body;
+    const result = await authService.ConfirmEmail({ Email, OTP });
+    if (!result) {
+      throw new BadRequstExption(
+        "Error while Confirming Email , try again later",
+      );
+    }
+    return SuccessResponse({ res, message: "Email Confirmed Successfly" });
+  },
+);
 export default router;
+
+// note : in next project do a General Validation Schema for General use like schema for authorixation token (Bearer token)

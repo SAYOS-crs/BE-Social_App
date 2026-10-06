@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyOTP = exports.SendOTP = void 0;
+const console_1 = require("console");
 const RedisRepository_1 = __importDefault(require("../../DB/RedisRepository"));
 const response_1 = require("../response");
 const hashing_service_1 = __importDefault(require("../Security/hashing.service"));
@@ -12,19 +13,39 @@ const Email_events_1 = require("./Email.events");
 const Email_prefix_1 = require("./Email.prefix");
 const Email_templet_1 = require("./Email.templet");
 // generate and send otp
+//
 const SendOTP = async ({ Email, EmailType, }) => {
     // pramter will receive {Email , counter , EmailType}
     // step1 : create the otp using OTP creator that generate otp and hash it to store it in redis and return the string otp to send it to user
     const OTP = await (0, OTP_service_1.OTP_Creator)(Email, EmailType);
     if (!OTP)
         throw new response_1.BadRequstExption("Error while creating otp : step1 in SendOTP Operation");
+    // ---------< redis opration >----------\\
+    const EncryptedOTP = await hashing_service_1.default.Hash(OTP);
+    const result = await RedisRepository_1.default.setOTP({
+        key: (0, Email_prefix_1.OTP_Prefix)(Email, EmailType),
+        value: EncryptedOTP,
+    });
+    if (!result) {
+        throw new response_1.BadRequstExption("error while restoring OTP in Redis");
+    }
+    (0, console_1.log)("otp restored in redis successfly", result);
+    // ----------------------------------------------------------
     // step2 : send the otp
-    const mailInfo = {
-        subject: EmailType,
-        to: Email,
-        html: (0, Email_templet_1.HtmlTemplet)({ OTP, EmailType }),
-    };
-    Email_events_1.Event.emit(EmailType, mailInfo);
+    try {
+        const mailInfo = {
+            subject: EmailType,
+            to: Email,
+            html: (0, Email_templet_1.HtmlTemplet)({ OTP, EmailType }),
+        };
+        Email_events_1.Event.emit(EmailType, mailInfo);
+    }
+    catch (err) {
+        // if sending email fails and redis result was "Oky" that = delet the otp cuz the send email fails
+        if (result)
+            RedisRepository_1.default.del((0, Email_prefix_1.OTP_Prefix)(Email, EmailType));
+        throw new response_1.BadRequstExption("error while sending email", err);
+    }
 };
 exports.SendOTP = SendOTP;
 // verify otp + delete otp + confirm user email

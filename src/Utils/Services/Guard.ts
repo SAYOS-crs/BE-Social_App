@@ -8,3 +8,12 @@ export const GetAuthenticatedUser = (req: Request): HUserDocument => {
   }
   return req.user;
 };
+
+export const CheckConfiremEmail = (
+  confirmEmail: Date | undefined,
+): Boolean | never => {
+  if (!confirmEmail) {
+    throw new UnAuthroizedExption("Email not Confirmed !");
+  }
+  return true;
+};

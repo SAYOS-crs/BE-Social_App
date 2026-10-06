@@ -33,10 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LoginSchema = exports.SignupSchema = void 0;
+exports.ConfirmEmailSchema = exports.SendConfirmationEmailsSchema = exports.LoginSchema = exports.SignupSchema = void 0;
 const z = __importStar(require("zod"));
 const Utils_1 = require("../../Utils");
-const Utils_2 = require("../../Utils");
 exports.SignupSchema = {
     body: z
         .strictObject({
@@ -46,7 +45,7 @@ exports.SignupSchema = {
         confirmPassword: z.string(),
         phone: z.string(),
         address: z.string(),
-        Gender: z.enum(Object.values(Utils_2.Enums.Gender)),
+        Gender: z.enum(Object.values(Utils_1.Enums.Gender)),
         // Rolle: z.enum(Object.values(Enums.Rolle)).optional(),
         // Providers: z.enum(Object.values(Enums.Providers)).optional(),
     })
@@ -64,5 +63,15 @@ exports.LoginSchema = {
     body: z.strictObject({
         Email: Utils_1.GeneralFields.Email,
         Password: Utils_1.GeneralFields.Password,
+    }),
+};
+exports.SendConfirmationEmailsSchema = {
+    body: z.strictObject({
+        Email: Utils_1.GeneralFields.Email,
+    }),
+};
+exports.ConfirmEmailSchema = {
+    body: z.strictObject({
+        OTP: Utils_1.GeneralFields.OTP,
     }),
 };

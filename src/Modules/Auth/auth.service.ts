@@ -1,5 +1,4 @@
 import { log } from "console";
-import { Request, Response } from "express";
 import UserRepository from "../../DB/Repository/User.Repository";
 import { HUserDocument } from "../../DB/models/User.model";
 import {
@@ -10,7 +9,6 @@ import {
   JWTService,
   NotFoundExption,
   OtpService,
-  SuccessResponse,
 } from "../../Utils";
 import { EmailType } from "../../Utils/Email/Email.templet";
 import {
@@ -88,12 +86,9 @@ class AuthService {
   };
 
   // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
-  SendConfirmEmail = async (
+  RequestEmailConfirmation = async (
     payloude: I_AuthSendConfirmEmailDTO,
   ): Promise<Boolean> => {
-    // step1 > get the user email
-    // step2 > send otp using email and emailtype for prefix
-
     try {
       await OtpService.SendOTP({
         Email: payloude.Email,
@@ -104,9 +99,16 @@ class AuthService {
       return false;
     }
   };
-  ConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
+
+  ConfirmEmail = async ({
+    OTP,
+    Email,
+  }: {
+    OTP: string;
+    Email: string;
+  }): Promise<Boolean | never> => {
     // step1 > get the  otp and email
-    const { OTP, Email } = req.body;
+
     // ----------------------------------------------------------------------
     // step2 > get the hased otp form redis
     // step3 > compare the otp with the hashed one
@@ -125,13 +127,8 @@ class AuthService {
         update: { confirmEmail: new Date() },
       })) || "";
 
-    if (!result)
-      throw new ConflictExption("Error while updating user data ...");
-    return SuccessResponse<any>({
-      res,
-      message: "Email Confirmed Successfly",
-      data: result,
-    });
+    if (!result) return false;
+    return true;
   };
 }
 

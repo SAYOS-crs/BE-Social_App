@@ -37,3 +37,9 @@ export const SendConfirmationEmailsSchema = {
     Email: GeneralFields.Email,
   }),
 };
+
+export const ConfirmEmailSchema = {
+  body: z.strictObject({
+    OTP: GeneralFields.OTP,
+  }),
+};

@@ -54,16 +54,20 @@ class AuthService {
         return Credentials;
     };
     // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
-    SendConfirmEmail = async (req, res) => {
-        // step1 > get the user email
-        const { Email } = req.body;
-        // step2 > send otp using email and emailtype for prefix
-        await Utils_1.OtpService.SendOTP({ Email, EmailType: Email_templet_1.EmailType.ConfirmEmail });
-        return (0, Utils_1.SuccessResponse)({ res, message: "check your Email" });
+    RequestEmailConfirmation = async (payloude) => {
+        try {
+            await Utils_1.OtpService.SendOTP({
+                Email: payloude.Email,
+                EmailType: Email_templet_1.EmailType.ConfirmEmail,
+            });
+            return true;
+        }
+        catch (err) {
+            return false;
+        }
     };
-    ConfirmEmail = async (req, res) => {
+    ConfirmEmail = async ({ OTP, Email, }) => {
         // step1 > get the  otp and email
-        const { OTP, Email } = req.body;
         // ----------------------------------------------------------------------
         // step2 > get the hased otp form redis
         // step3 > compare the otp with the hashed one
@@ -78,12 +82,8 @@ class AuthService {
             update: { confirmEmail: new Date() },
         })) || "";
         if (!result)
-            throw new Utils_1.ConflictExption("Error while updating user data ...");
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "Email Confirmed Successfly",
-            data: result,
-        });
+            return false;
+        return true;
     };
 }
 exports.default = new AuthService();

@@ -21,5 +21,14 @@ class RedisService {
         const result = await this._client.del(key);
         return result;
     }
+    async setOTP({ key, value, ttl = 3600, }) {
+        const OTPKey = await this._client.set(key, JSON.stringify(value), {
+            expiration: {
+                type: "EX",
+                value: ttl,
+            },
+        });
+        return OTPKey;
+    }
 }
 exports.default = new RedisService();
