@@ -39,8 +39,8 @@ class AuthService {
             throw new Utils_1.BadRequstExption("something Went Wrong when trying to insert the User", { cause: result });
         return result;
     };
-    Login = async (req, res) => {
-        const { Email, Password } = req.body;
+    Login = async ({ payloude, }) => {
+        const { Email, Password } = payloude;
         // ----------------------------------------------------------------------
         const user = await this._UserRepository.findOne({
             filter: { Email },
@@ -51,11 +51,7 @@ class AuthService {
             throw new Utils_1.BadRequstExption("Invalid Password");
         // ----------------------------------------------------------------------
         const Credentials = await Utils_1.JWTService.CredentialsGenerator(user);
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "logged in successfully",
-            data: Credentials,
-        });
+        return Credentials;
     };
     // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
     SendConfirmEmail = async (req, res) => {

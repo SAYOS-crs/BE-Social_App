@@ -29,7 +29,15 @@ router.post("/signup", (0, Validation_middleware_1.default)(auth_validation_1.Si
         data: result,
     });
 });
-router.post("/login", (0, Validation_middleware_1.default)(auth_validation_1.LoginSchema), auth_service_1.default.Login);
+router.post("/login", (0, Validation_middleware_1.default)(auth_validation_1.LoginSchema), async (req, res) => {
+    const { Email, Password } = req.body;
+    const result = await auth_service_1.default.Login({ payloude: { Email, Password } });
+    return (0, Utils_1.SuccessResponse)({
+        res,
+        message: "user Loged in Successfly",
+        data: result,
+    });
+});
 router.post("/SendConfirmationEmail", auth_service_1.default.SendConfirmEmail);
 router.patch("/ConfirmEmail", auth_service_1.default.ConfirmEmail);
 exports.default = router;

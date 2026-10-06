@@ -1,8 +1,8 @@
 import { Request, Response, Router } from "express";
 import { HUserDocument } from "../../DB/models/User.model";
 import Validation from "../../Middlewares/Validation.middleware";
-import { SuccessResponse } from "../../Utils";
-import { I_AuthSignUpDTO } from "./auth.dto";
+import { ITokenPair, SuccessResponse } from "../../Utils";
+import { I_AuthLoginDTO, I_AuthSignUpDTO } from "./auth.dto";
 import authService from "./auth.service";
 import { LoginSchema, SignupSchema } from "./auth.validation";
 
@@ -40,7 +40,19 @@ router.post(
   },
 );
 
-router.post("/login", Validation(LoginSchema), authService.Login);
+router.post(
+  "/login",
+  Validation(LoginSchema),
+  async (req: Request, res: Response): Promise<Response> => {
+    const { Email, Password }: I_AuthLoginDTO = req.body;
+    const result = await authService.Login({ payloude: { Email, Password } });
+    return SuccessResponse<ITokenPair>({
+      res,
+      message: "user Loged in Successfly",
+      data: result,
+    });
+  },
+);
 router.post("/SendConfirmationEmail", authService.SendConfirmEmail);
 router.patch("/ConfirmEmail", authService.ConfirmEmail);
 export default router;

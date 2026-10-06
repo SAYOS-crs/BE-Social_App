@@ -13,11 +13,7 @@ import {
   SuccessResponse,
 } from "../../Utils";
 import { EmailType } from "../../Utils/Email/Email.templet";
-import {
-  I_AuthLoginDTO,
-  I_AuthLoginResponseDTO,
-  I_AuthSignUpDTO,
-} from "./auth.dto";
+import { I_AuthLoginDTO, I_AuthSignUpDTO } from "./auth.dto";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -67,8 +63,12 @@ class AuthService {
     return result as HUserDocument;
   };
 
-  Login = async (req: Request, res: Response): Promise<Response> => {
-    const { Email, Password }: I_AuthLoginDTO = req.body;
+  Login = async ({
+    payloude,
+  }: {
+    payloude: I_AuthLoginDTO;
+  }): Promise<ITokenPair> => {
+    const { Email, Password }: I_AuthLoginDTO = payloude;
     // ----------------------------------------------------------------------
 
     const user: HUserDocument | null = await this._UserRepository.findOne({
@@ -80,11 +80,7 @@ class AuthService {
       throw new BadRequstExption("Invalid Password");
     // ----------------------------------------------------------------------
     const Credentials: ITokenPair = await JWTService.CredentialsGenerator(user);
-    return SuccessResponse<I_AuthLoginResponseDTO>({
-      res,
-      message: "logged in successfully",
-      data: Credentials,
-    });
+    return Credentials;
   };
 
   // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
