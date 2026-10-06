@@ -3,14 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Utils_1 = require("../../Utils");
+const console_1 = require("console");
 const User_Repository_1 = __importDefault(require("../../DB/Repository/User.Repository"));
+const Utils_1 = require("../../Utils");
 const Email_templet_1 = require("../../Utils/Email/Email.templet");
 class AuthService {
     _UserRepository = new User_Repository_1.default();
     constructor() { }
-    SignUp = async (req, res, next) => {
-        const { Email, Gender, Password, address, phone, username, } = req.body;
+    SignUp = async ({ payloude, }) => {
+        const { Email, Gender, Password, address, phone, username, } = payloude;
         // checking if use exists
         const isUserExist = await this._UserRepository.exists({
             Email,
@@ -30,14 +31,13 @@ class AuthService {
                 username,
             },
         });
+        (0, console_1.log)("SignUp result :", result);
         // safety check
         if (!result)
+            // tip : in next project make ErrorType witch return {status : error , cause : ...}
+            // cuze the service must return data | error to use it in multi excution context like resful api or graphql , to handel the error form controller or the resolver for batter error handling
             throw new Utils_1.BadRequstExption("something Went Wrong when trying to insert the User", { cause: result });
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "good",
-            data: result,
-        });
+        return result;
     };
     Login = async (req, res) => {
         const { Email, Password } = req.body;

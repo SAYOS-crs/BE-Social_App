@@ -1,4 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import { log } from "console";
+import { Request, Response } from "express";
+import UserRepository from "../../DB/Repository/User.Repository";
+import { HUserDocument } from "../../DB/models/User.model";
 import {
   BadRequstExption,
   ConflictExption,
@@ -9,30 +12,22 @@ import {
   OtpService,
   SuccessResponse,
 } from "../../Utils";
-import UserRepository from "../../DB/Repository/User.Repository";
+import { EmailType } from "../../Utils/Email/Email.templet";
 import {
-  I_AuthSignUpDTO,
   I_AuthLoginDTO,
   I_AuthLoginResponseDTO,
+  I_AuthSignUpDTO,
 } from "./auth.dto";
-import hashingService from "../../Utils/Security/hashing.service";
-import EncryptionService, {
-  CreateSecretKey,
-} from "../../Utils/Security/Encryption.service";
-import { EmailType } from "../../Utils/Email/Email.templet";
-import RedisService from "../../DB/RedisRepository";
-import { HUserDocument, IUser } from "../../DB/models/User.model";
-import { log } from "console";
 
 class AuthService {
   private _UserRepository = new UserRepository();
   constructor() {}
 
-  SignUp = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<Response> => {
+  SignUp = async ({
+    payloude,
+  }: {
+    payloude: I_AuthSignUpDTO;
+  }): Promise<HUserDocument> => {
     const {
       Email,
       Gender,
@@ -40,7 +35,7 @@ class AuthService {
       address,
       phone,
       username,
-    }: I_AuthSignUpDTO = req.body;
+    }: I_AuthSignUpDTO = payloude;
     // checking if use exists
     const isUserExist = await this._UserRepository.exists({
       Email,
@@ -60,18 +55,16 @@ class AuthService {
         username,
       },
     });
-
+    log("SignUp result :", result);
     // safety check
     if (!result)
+      // tip : in next project make ErrorType witch return {status : error , cause : ...}
+      // cuze the service must return data | error to use it in multi excution context like resful api or graphql , to handel the error form controller or the resolver for batter error handling
       throw new BadRequstExption(
         "something Went Wrong when trying to insert the User",
         { cause: result },
       );
-    return SuccessResponse<any>({
-      res,
-      message: "good",
-      data: result,
-    });
+    return result as HUserDocument;
   };
 
   Login = async (req: Request, res: Response): Promise<Response> => {

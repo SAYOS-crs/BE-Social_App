@@ -17,20 +17,37 @@ class PostResolver {
     args: GqlPostValidationSchema.GetPostsArgsType,
     payloud: any,
   ) => {
+    // ---------------- Authentication ---------------- \\
+    //
     const { user } = await this.Authentication.Decode(
       payloud.headers.authorization,
       TokenType.Access,
     );
+    log("decoded user from graphql resolver :", user);
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
+
+    // ---------------- Authorization ---------------- \\
+    //
     const AuthResult = GqlAuthorization([Rolle.User], user);
     if (!AuthResult) {
       throw new GraphQLError("User not Authorized to this query");
     }
-    log("decoded user from graphql resolver :", user);
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
+
+    // ---------------- Validation ---------------- \\
+    //
     // manule validation / take type + zod schema + data
     GqlValidation<GqlPostValidationSchema.GetPostsArgsType>(
       GqlPostValidationSchema.GetPostsArgs,
       args,
     );
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
+    // ------------------------------------------------\\
 
     const result = await this.PostSerives.retrievePosts({
       user,
