@@ -1,6 +1,5 @@
 import * as z from "zod";
-import { GeneralFields } from "../../Utils";
-import { Enums } from "../../Utils";
+import { Enums, GeneralFields } from "../../Utils";
 
 export const SignupSchema = {
   body: z
@@ -30,5 +29,11 @@ export const LoginSchema = {
   body: z.strictObject({
     Email: GeneralFields.Email,
     Password: GeneralFields.Password,
+  }),
+};
+
+export const SendConfirmationEmailsSchema = {
+  body: z.strictObject({
+    Email: GeneralFields.Email,
   }),
 };

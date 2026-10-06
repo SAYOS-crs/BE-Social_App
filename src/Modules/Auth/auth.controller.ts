@@ -1,10 +1,18 @@
 import { Request, Response, Router } from "express";
 import { HUserDocument } from "../../DB/models/User.model";
 import Validation from "../../Middlewares/Validation.middleware";
-import { ITokenPair, SuccessResponse } from "../../Utils";
-import { I_AuthLoginDTO, I_AuthSignUpDTO } from "./auth.dto";
+import { BadRequstExption, ITokenPair, SuccessResponse } from "../../Utils";
+import {
+  I_AuthLoginDTO,
+  I_AuthSendConfirmEmailDTO,
+  I_AuthSignUpDTO,
+} from "./auth.dto";
 import authService from "./auth.service";
-import { LoginSchema, SignupSchema } from "./auth.validation";
+import {
+  LoginSchema,
+  SendConfirmationEmailsSchema,
+  SignupSchema,
+} from "./auth.validation";
 
 const router: Router = Router();
 
@@ -53,6 +61,21 @@ router.post(
     });
   },
 );
-router.post("/SendConfirmationEmail", authService.SendConfirmEmail);
+
+router.post(
+  "/SendConfirmationEmail",
+  Validation(SendConfirmationEmailsSchema),
+  async (req: Request, res: Response): Promise<Response> => {
+    const { Email }: I_AuthSendConfirmEmailDTO = req.body;
+    const result = await authService.SendConfirmEmail({ Email });
+    if (!result) {
+      throw new BadRequstExption("error while sending email OTP");
+    }
+    return SuccessResponse({
+      res,
+      message: `OTP send successfly to : ${Email} `,
+    });
+  },
+);
 router.patch("/ConfirmEmail", authService.ConfirmEmail);
 export default router;

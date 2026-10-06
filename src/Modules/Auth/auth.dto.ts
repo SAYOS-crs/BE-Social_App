@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { ITokenPair } from "../../Utils";
-import { LoginSchema, SignupSchema } from "./auth.validation";
+import {
+  LoginSchema,
+  SendConfirmationEmailsSchema,
+  SignupSchema,
+} from "./auth.validation";
 
 type AuthSignUpType = z.infer<typeof SignupSchema.body>;
 // omit dose exclude type from object like confirmPassword cuze we need it only in validation
@@ -9,3 +13,7 @@ export type I_AuthSignUpDTO = Omit<AuthSignUpType, "confirmPassword">;
 export type I_AuthLoginDTO = z.infer<typeof LoginSchema.body>;
 
 export interface I_AuthLoginResponseDTO extends ITokenPair {}
+
+export type I_AuthSendConfirmEmailDTO = z.infer<
+  typeof SendConfirmationEmailsSchema.body
+>;

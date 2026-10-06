@@ -13,7 +13,11 @@ import {
   SuccessResponse,
 } from "../../Utils";
 import { EmailType } from "../../Utils/Email/Email.templet";
-import { I_AuthLoginDTO, I_AuthSignUpDTO } from "./auth.dto";
+import {
+  I_AuthLoginDTO,
+  I_AuthSendConfirmEmailDTO,
+  I_AuthSignUpDTO,
+} from "./auth.dto";
 
 class AuthService {
   private _UserRepository = new UserRepository();
@@ -84,12 +88,21 @@ class AuthService {
   };
 
   // -—-—-—-—-—-—-—-—-—-—-—-—<< Confirm Email Routers >>--—-—-—-—-—-—-—-—-—-—-—-—-—-—-—-—
-  SendConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
+  SendConfirmEmail = async (
+    payloude: I_AuthSendConfirmEmailDTO,
+  ): Promise<Boolean> => {
     // step1 > get the user email
-    const { Email } = req.body;
     // step2 > send otp using email and emailtype for prefix
-    await OtpService.SendOTP({ Email, EmailType: EmailType.ConfirmEmail });
-    return SuccessResponse({ res, message: "check your Email" });
+
+    try {
+      await OtpService.SendOTP({
+        Email: payloude.Email,
+        EmailType: EmailType.ConfirmEmail,
+      });
+      return true;
+    } catch (err) {
+      return false;
+    }
   };
   ConfirmEmail = async (req: Request, res: Response): Promise<Response> => {
     // step1 > get the  otp and email

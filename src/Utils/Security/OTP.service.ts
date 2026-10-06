@@ -1,8 +1,4 @@
-import { customAlphabet, nanoid } from "nanoid";
-import hashingService from "./hashing.service";
-import RedisService from "../../DB/RedisRepository";
-import { OTP_Prefix } from "../Email/Email.prefix";
-import { BadRequstExption } from "../response";
+import { customAlphabet } from "nanoid";
 import { EmailType } from "../Email/Email.templet";
 
 // #generate OTP
@@ -20,11 +16,12 @@ export const OTP_Creator = async (
   OtpType: EmailType,
 ): Promise<string> => {
   const OTP: string = await GenerateOTP();
-  const EncryptedOTP = await hashingService.Hash(OTP);
-  const result = await RedisService.set({
-    key: OTP_Prefix(Email, OtpType),
-    value: EncryptedOTP,
-  });
-  if (!result) throw new BadRequstExption("error while restoring OTP in Redis");
+  // bad redis use ! : ever service must had singel job !
+  // const EncryptedOTP = await hashingService.Hash(OTP);
+  // const result = await RedisService.setOTP({
+  //   key: OTP_Prefix(Email, OtpType),
+  //   value: EncryptedOTP,
+  // });
+  // if (!result) throw new BadRequstExption("error while restoring OTP in Redis");
   return OTP;
 };

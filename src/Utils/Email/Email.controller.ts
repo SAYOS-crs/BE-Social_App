@@ -1,3 +1,4 @@
+import { log } from "console";
 import RedisService from "../../DB/RedisRepository";
 import { BadRequstExption, ConflictExption } from "../response";
 import hashingService from "../Security/hashing.service";
@@ -7,6 +8,7 @@ import { OTP_Prefix } from "./Email.prefix";
 import { ImailInfo } from "./Email.service";
 import { EmailType, HtmlTemplet } from "./Email.templet";
 // generate and send otp
+//
 export const SendOTP = async ({
   Email,
   EmailType,
@@ -17,17 +19,35 @@ export const SendOTP = async ({
   // pramter will receive {Email , counter , EmailType}
   // step1 : create the otp using OTP creator that generate otp and hash it to store it in redis and return the string otp to send it to user
   const OTP: string = await OTP_Creator(Email, EmailType);
+
   if (!OTP)
     throw new BadRequstExption(
       "Error while creating otp : step1 in SendOTP Operation",
     );
+  // ---------< redis opration >----------\\
+  const EncryptedOTP = await hashingService.Hash(OTP);
+  const result = await RedisService.setOTP({
+    key: OTP_Prefix(Email, EmailType),
+    value: EncryptedOTP,
+  });
+  if (!result) {
+    throw new BadRequstExption("error while restoring OTP in Redis");
+  }
+  log("otp restored in redis successfly", result);
+  // ----------------------------------------------------------
   // step2 : send the otp
-  const mailInfo: ImailInfo = {
-    subject: EmailType,
-    to: Email,
-    html: HtmlTemplet({ OTP, EmailType }),
-  };
-  Event.emit(EmailType, mailInfo);
+  try {
+    const mailInfo: ImailInfo = {
+      subject: EmailType,
+      to: Email,
+      html: HtmlTemplet({ OTP, EmailType }),
+    };
+    Event.emit(EmailType, mailInfo);
+  } catch (err) {
+    // if sending email fails and redis result was "Oky" that = delet the otp cuz the send email fails
+    if (result) RedisService.del(OTP_Prefix(Email, EmailType));
+    throw new BadRequstExption("error while sending email", err);
+  }
 };
 
 // verify otp + delete otp + confirm user email

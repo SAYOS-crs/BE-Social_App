@@ -1,4 +1,4 @@
-import { RedisArgument, SetOptions } from "redis";
+import { RedisArgument } from "redis";
 import { client } from "./Connection";
 
 class RedisService {
@@ -30,6 +30,25 @@ class RedisService {
   async del(key: RedisArgument) {
     const result = await this._client.del(key);
     return result;
+  }
+
+  async setOTP({
+    key,
+    value,
+    ttl = 3600,
+  }: {
+    key: RedisArgument;
+    value: RedisArgument | number;
+    ttl?: number;
+  }): Promise<string | null> {
+    const OTPKey = await this._client.set(key, JSON.stringify(value), {
+      expiration: {
+        type: "EX",
+        value: ttl,
+      },
+    });
+
+    return OTPKey;
   }
 }
 
