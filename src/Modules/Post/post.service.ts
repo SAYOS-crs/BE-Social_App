@@ -191,14 +191,22 @@ class PostService {
     //
     //
     //  * =====> step 4 : Delete Assets if post creation fail
+    // If the DB insert failed but S3 upload succeeded, clean up the orphaned S3 objects
     if (!result && s3_r) {
-      // create array of Key >> [{Key:string}]
-      const Keys: { Key: string }[] = s3_r.map((Key) => {
-        return { Key };
-      });
-      // Delete Assets via s3
+      // REFACTORED: the old approach manually mapped s3_r to [{ Key: string }] before calling DeleteAssets.
+      // After the S3service refactor, DeleteAssets now accepts string[] directly and
+      // handles the [{ Key }] conversion internally — so we pass s3_r as-is.
+      //
+      // Deprecated mapping (no longer needed):
+      // const Keys: { Key: string }[] = s3_r.map((Key) => {
+      //   return { Key };
+      // });  <<deprecated>>
+      //
+      //
+      //
+      // Delete Assets via s3 — pass the string[] of S3 keys directly
       this._AWS_S3.DeleteAssets({
-        Keys: Keys,
+        Keys: s3_r, // string[] — S3service converts to [{Key}] format internally
       });
     }
     //

@@ -79,7 +79,11 @@ exports.GeneralFields = {
             originalname: z.string(),
             encoding: z.string(),
             mimetype: z.enum(mimtype, { error: "file type not allowed" }),
+            // buffer for memory storage
             buffer: z.any().optional(),
+            // destination + filename for disk storage (tmp)
+            destination: z.string().optional(),
+            filename: z.string().optional(),
             path: z.string().optional(),
             size: z.number(),
         })
@@ -97,4 +101,13 @@ exports.GeneralFields = {
         // this is how to make sure react number is in the enum of reacts
         return Object.values(Enums_1.PostEnum.PostReactEnum).includes(Number(v));
     }, { error: "react number not valid" }),
+    // enhance needed !
+    Key: z.string(),
+    ContentType: z.string(),
+    Originalname: z.string(),
+    filename: z.string(),
+    download: z.enum(Enums_1.AwsEnum.download),
+    path: z.array(z.string()),
+    Notification_title: z.string().min(5).max(20),
+    Notification_body: z.string().min(10).max(50),
 };

@@ -1,25 +1,23 @@
+import { randomUUID } from "crypto";
 import { Request, Response } from "express";
-import {
-  AWS_SERVICE,
-  AwsEnum,
-  BadRequstExption,
-  ConflictExption,
-  Guard,
-  NotFoundExption,
-  NotificationService,
-  Post_Utils,
-  SuccessResponse,
-  UnAuthroizedExption,
-} from "../../Utils";
+import { Types } from "mongoose";
 import {
   CommentRepository,
   PostRepository,
   UserRepository,
 } from "../../DB/Repository";
 import { HUserDocument, IUser } from "../../DB/models/User.model";
-import { AssetType } from "../../Utils/Enums/AWS.enum";
-import { randomUUID } from "crypto";
-import { Keys } from "../../Utils/AWS/types";
+import {
+  AWS_SERVICE,
+  AwsEnum,
+  BadRequstExption,
+  ConflictExption,
+  NotFoundExption,
+  NotificationService,
+  Post_Utils,
+  SuccessResponse,
+  UnAuthroizedExption,
+} from "../../Utils";
 import {
   I_CommentReply_Body_DTO,
   I_CommentReply_Params_DTO,
@@ -28,29 +26,47 @@ import {
   I_GetCommentReplies_Params_DTO,
   I_GetPostComments_Params_DTO,
 } from "./comment.dto";
-import { Types } from "mongoose";
 
+/**
+ * SendAssets_S3
+ * Takes  : files? — optional array of multer File objects (from memory storage)
+ * Does   :
+ *   1. Generates a unique folderId (UUID) to group all files for this comment/post
+ *      under a dedicated S3 sub-folder, preventing key collisions across uploads.
+ *   2. If files are provided AND non-empty, uploads them to S3 under the Comments folder.
+ *      ⚠️  NOTE: `files = []` is truthy — always do a .length check, not just truthiness!
+ *   3. Returns the raw S3 Keys string[] directly (REFACTORED from {Key:string}[] shape).
+ *      The old mapping step `result.map((Key) => ({ Key }))` was removed because
+ *      the S3 service's DeleteAssets now accepts string[] and handles the conversion internally.
+ * Returns: { folderId: string, S3_r: string[] | undefined }
+ *   • folderId : UUID used as the folder name in S3 (also stored in the comment as fileId)
+ *   • S3_r     : array of uploaded S3 object key strings, or undefined if no files were provided
+ */
 export const SendAssets_S3 = async (
-  files?: Express.Multer.File[],
+  files?: Express.Multer.File[], // optional — callers pass files only when attachments exist
 ): Promise<{
   folderId: string;
-  S3_r: Keys | undefined;
+  S3_r: string[] | undefined;
 }> => {
+  // generate a UUID as a unique folder ID to scope this upload batch in S3
   const folderId = randomUUID();
+
   // super note : the files = [] and empty [] is true , so do length check !!!
+  // upload only if files array is provided AND has at least one element
   const result = files?.length
     ? await AWS_SERVICE.S3service.UploadMultiFiles({
-        AssetType: AwsEnum.AssetType.attachments,
-        folder: AwsEnum.FolderType.Comments,
-        id: folderId,
+        AssetType: AwsEnum.AssetType.attachments, // marks these as comment/post attachment files
+        folder: AwsEnum.FolderType.Comments,       // stored under the "Comments" top-level S3 folder
+        id: folderId,                              // groups all files for this upload under the UUID folder
         files,
       })
-    : undefined;
-  const S3_r: Keys | undefined = result
-    ? result?.map((Key) => {
-        return { Key };
-      })
-    : undefined;
+    : undefined; // no files → no S3 upload → result is undefined
+
+  // REFACTORED: previously mapped result to [{Key:string}] shape — now kept as string[]
+  // because S3service.DeleteAssets now accepts string[] and does the format conversion internally
+  const S3_r: string[] | undefined = result ? result : undefined;
+
+  // return the folder ID (for DB storage as fileId) and the array of S3 Keys (or undefined)
   return { folderId, S3_r };
 };
 

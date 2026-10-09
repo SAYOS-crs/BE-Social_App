@@ -1,36 +1,43 @@
 import mongoose, { Schema, Types } from "mongoose";
-import { IUser } from "./User.model";
 import { PostEnum } from "../../Utils";
 import { IPost, React } from "./Post.model";
-import { Keys } from "../../Utils/AWS/types";
+import { IUser } from "./User.model";
 
 // ------------------------------ Post Model ------------------------------\\
 
 // step 1 : create intercafe
 export interface IComment {
   // ---- post content
-  _id: Types.ObjectId | string | undefined;
-  id: Types.ObjectId | string | undefined;
-  postId: string | IPost;
-  content?: string | undefined;
-  attachments?: Keys | undefined;
-  visibility?: PostEnum.VisibilityEnum | undefined;
+  _id: Types.ObjectId | string | undefined; // internal MongoDB document identifier
+  id: Types.ObjectId | string | undefined;  // Mongoose virtual (alias for _id); do NOT query by this
+  postId: string | IPost;                   // reference to the parent Post (stored as string, populated as IPost)
+  content?: string | undefined;             // text body of the comment (optional only if attachments exist)
+
+  // REFACTORED: was previously `Keys` (array of { Key: string } objects) matching the old S3 key shape.
+  // Now stored as plain string[] — each element is a full S3 object key string.
+  // This aligns with the S3service refactor where DeleteAssets accepts string[] directly.
+  attachments?: string[] | undefined;       // S3 object keys of files attached to this comment (max 3)
+
+  visibility?: PostEnum.VisibilityEnum | undefined; // who can see this comment (Public | Friends | Private)
   // ---- replyes
-  RepliedOn?: string | IComment | undefined;
-  RepliedList?: string[] | IComment[] | undefined;
+  RepliedOn?: string | IComment | undefined;       // the comment this is replying to (populated as IComment)
+  RepliedList?: string[] | IComment[] | undefined; // list of replies to this comment
   // ---- fileId > id of attachments s3 bucket
-  fileId?: string | undefined;
+  fileId?: string | undefined; // UUID folder ID in S3 that groups this comment's attachments
   // ---- post / users actions to post
-  tags?: string | string[] | IUser | IUser[] | undefined;
-  likes?: React | React[] | IUser | IUser[] | undefined;
+  tags?: string | string[] | IUser | IUser[] | undefined;   // tagged user IDs (populated as IUser)
+  likes?: React | React[] | IUser | IUser[] | undefined;    // reactions on this comment
   // ---- actions By
-  CreatedBy: Types.ObjectId | IUser | string;
-  DeletedBy?: Types.ObjectId | IUser | string | undefined;
+  CreatedBy: Types.ObjectId | IUser | string;               // user who created the comment
+  DeletedBy?: Types.ObjectId | IUser | string | undefined;  // user who soft-deleted the comment
   // ---- actions At
-  CreatedAt: Date;
-  UpdatedAt?: Date | undefined;
-  DeletedAt?: Date | undefined;
+  CreatedAt: Date;                    // auto-set by Mongoose timestamps
+  UpdatedAt?: Date | undefined;       // auto-updated by Mongoose timestamps
+  DeletedAt?: Date | undefined;       // soft-delete timestamp (set on logical deletion)
 }
+
+// HCommentDoc — convenience type alias for a Mongoose hydrated comment document
+// (includes Mongoose instance methods, virtuals, and $set / $push etc.)
 export type HCommentDoc = mongoose.HydratedDocument<IComment>;
 
 // step 2 : create model Schema
@@ -38,15 +45,20 @@ const CommentSchema = new Schema<IComment>(
   {
     content: {
       type: String,
+      // content is required ONLY when no attachments are provided
+      // (a comment must have either text or at least one attachment)
       required: function (this: HCommentDoc) {
-        return !this.attachments?.length;
+        return !this.attachments?.length; // true = required if attachments is empty/undefined
       },
     },
     attachments: {
-      type: [{ Key: String }],
-      max: [3, "max post attachment : 3 "],
+      // REFACTORED: was `[{ Key: String }]` (array of objects) — changed to `[String]`
+      // to store plain S3 key strings, aligning with the updated S3service.DeleteAssets API
+      type: [String],             // each element is a plain S3 object key string
+      max: [3, "max post attachment : 3 "], // cap at 3 files per comment
+      // attachments are required ONLY when no text content is provided
       required: function (this: HCommentDoc) {
-        return Boolean(!this.content);
+        return Boolean(!this.content); // true = required if content is empty/undefined
       },
     },
     fileId: String,

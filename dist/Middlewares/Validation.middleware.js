@@ -8,10 +8,16 @@ const Utils_1 = require("../Utils");
 function Validation(schema) {
     return (req, res, next) => {
         const ErrorResults = [];
+        // ------------< File Reverser >------------\\
         if (req.files) {
             req.body.files = req.files;
-            console.log(req.body);
+            console.log("files(multi) Reverser to body :", req.body);
         }
+        else if (req.file) {
+            req.body.file = req.file;
+            console.log("file(singel) Reverser to body :", req.body);
+        }
+        // ------------------------------------------\\
         for (const key of Object.keys(schema)) {
             if (!schema[key])
                 continue;

@@ -5,11 +5,13 @@ import {
   GetObjectCommand,
   ListObjectsV2Command,
   ObjectCannedACL,
-  ObjectIdentifier,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { readFileSync } from "node:fs";
 import {
   AWS_REGION,
   S3_BUCKET_NAME,
@@ -18,11 +20,7 @@ import {
   S3_SignedUrl_TTL,
 } from "../../Config/config";
 import { AwsEnum, StorageAprotches } from "../Enums";
-import { readFileSync } from "node:fs";
 import { BadRequstExption } from "../response";
-import { Upload } from "@aws-sdk/lib-storage";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Keys } from "./types";
 
 export const s3PathKeyPrefix = ({
   folder,
@@ -277,10 +275,10 @@ class S3service {
   }: {
     Bucket?: string;
     Key: string;
-    filename?: string;
+    filename?: string | undefined;
     path: string[];
     download?: string | undefined;
-    ContentType?: string;
+    ContentType?: string | undefined;
   }) {
     const targetFilename = filename || path[path.length - 1];
 
@@ -321,62 +319,114 @@ class S3service {
     return DeleteMarker;
   }
   // =======================================================================
+  /**
+   * DeleteAssets
+   * Takes  : { Bucket?: string, Keys: string[] }
+   *   • Bucket : S3 bucket name (defaults to app-configured bucket)
+   *   • Keys   : plain string[] of S3 object keys to bulk-delete
+   *              (REFACTORED: was previously { Key: string }[] — now accepts string[] for simplicity)
+   * Does   :
+   *   1. Converts the string[] into the [{ Key: string }] format required by the AWS SDK
+   *      (DeleteObjectsCommand expects Objects: [{ Key: "..." }, ...])
+   *   2. Sends a DeleteObjects batch command to S3 (all keys in a single HTTP request)
+   *   3. Throws 400 if S3 does not return a Deleted list (batch failed entirely)
+   * Returns: DeletedObject[] — one entry per successfully deleted object,
+   *          each with { Key, DeleteMarker, VersionId } fields
+   */
   public async DeleteAssets({
     Bucket = this.S3_BUCKET_NAME,
     Keys,
   }: {
     Bucket?: string;
-    Keys: Keys;
+    Keys: string[]; // plain string array — AWS SDK format conversion is handled internally below
   }): Promise<DeletedObject[]> {
+    // AWS SDK's DeleteObjects requires objects in [{ Key: "..." }] format,
+    // but callers now pass a simpler string[] — we convert here to keep the API clean
+    // it must be like [ {Key:...} , {Key:...} , {Key:...} ] so that why we do this
+    const ArrayOfKeys: { Key: string }[] = Keys.map((k) => {
+      return { Key: k }; // wrap each key string in the { Key } object shape AWS expects
+    });
+
+    // build the batch delete command with all keys at once
     const command = new DeleteObjectsCommand({
       Bucket,
       Delete: {
-        Objects: Keys,
-        Quiet: false,
+        Objects: ArrayOfKeys, // converted [{Key}] format required by the AWS SDK
+        Quiet: false,         // false → response includes both deleted and error objects (verbose mode)
       },
     });
+
+    // send the batch delete command to AWS S3
     const result = await this.Client.send(command);
+
+    // guard: if result.Deleted is undefined the entire batch operation failed
     if (!result.Deleted) {
       throw new BadRequstExption(
         "Error while Deleting Assets , returned :- ",
         result,
       );
     }
+
+    // return the array of DeletedObject — each entry confirms one successfully deleted key
     return result.Deleted;
   }
   // =======================================================================
 
+  /**
+   * DeleteAssetsByPrefix
+   * Takes  : { folder: "User" | "Post", id: string }
+   *   • folder : top-level S3 folder ("User" or "Post")
+   *   • id     : entity ID used to build the S3 prefix (e.g. "User/<id>/")
+   * Does   :
+   *   step 1 → lists all objects under the prefix "<bucket>/<folder>/<id>/"
+   *   step 2 → extracts the Key strings from the listing result into a string[]
+   *            (note: the old [{ Key }] mapping was replaced — DeleteAssets handles conversion internally)
+   *   step 3 → calls DeleteAssets with the string[] to batch-delete all found objects
+   * Returns: DeletedObject[] — confirmation of all deleted objects
+   * Throws : BadRequstExption if listing returns no Contents, or if deletion fails
+   */
   public async DeleteAssetsByPrefix({
     folder,
     id,
   }: {
-    folder: "User" | "Post";
-    id: string;
+    folder: "User" | "Post"; // restrict to supported top-level folders
+    id: string;              // the entity ID (user or post) to scope the deletion
   }) {
-    // step 1 : get Assets
-    console.log(`${this.S3_BUCKET_NAME}/${folder}/${id}`);
+    // step 1: list all objects under the entity's S3 folder prefix
+    console.log(`${this.S3_BUCKET_NAME}/${folder}/${id}`); // debug: log the prefix being listed
 
     const Assets = await this.RetrieveAssets({
-      Prefix: `${this.S3_BUCKET_NAME}/${folder}/${id}`,
+      Prefix: `${this.S3_BUCKET_NAME}/${folder}/${id}`, // S3 prefix filter — returns all objects under this path
     });
+
+    // guard: if Contents is missing the listing call failed or returned nothing
     if (!Assets.Contents) {
       throw new BadRequstExption("Error while Retrieve Assets", Assets);
     }
-    // step 2 : get Assets Keys as [ {Key:...} , {Key:...} , {Key:...} ]
-    const Keys: { Key: string }[] = Assets.Contents.map((content) => {
-      return { Key: content.Key as string };
+
+    // step 2: extract just the Key strings from the S3 listing result
+    // REFACTORED: previously mapped to [{ Key: string }] — now maps to string[]
+    // because DeleteAssets now accepts string[] and handles the format conversion internally
+    // step 2 : get Assets Keys as [ {Key:...} , {Key:...} , {Key:...} ] !! canceld !!
+    // after refactor : DeleteAssets take array of string ["key1" , "key2" , "key3"] , and it handel the step 2 inside
+    const Keys: string[] = Assets.Contents.map((content) => {
+      return content.Key as string; // cast: S3 ListObjectsV2 returns Key as string | undefined
     });
-    // step 3 : call DeleteAssets Methods that take Keys
+
+    // step 3: batch-delete all objects using their Keys
     const Deleted = await this.DeleteAssets({
-      Keys,
+      Keys, // string[] — DeleteAssets converts to [{Key}] format internally
     });
+
+    // guard: Deleted should never be falsy if DeleteAssets succeeded (it throws on failure)
     if (!Deleted) {
       throw new BadRequstExption(
         "Error While Deleting Assets , returned :-",
         Deleted,
       );
     }
-    // return result
+
+    // return the full list of DeletedObject records to the caller
     return Deleted;
   }
 }

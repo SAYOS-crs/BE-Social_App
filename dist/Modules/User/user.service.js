@@ -6,20 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const User_Repository_1 = __importDefault(require("../../DB/Repository/User.Repository"));
 const Utils_1 = require("../../Utils");
-// ------------------ tools ---------------\\
-// - S3_ReadStream = transform pipeline from callback to async
-const node_util_1 = require("node:util");
-const node_stream_1 = require("node:stream");
 const node_console_1 = require("node:console");
-const S3_ReadStream = (0, node_util_1.promisify)(node_stream_1.pipeline);
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 // -
-const S3_RetrieveKeyFromParams = (req) => {
-    const { path } = req.params;
-    const Key = path.join("/");
-    return { Key, path };
-};
 // -----------------------------------------\\
 class UserService {
     _NotificationService = Utils_1.NotificationService;
@@ -32,25 +22,15 @@ class UserService {
         }
         return req.user;
     };
-    _GetAuthorizedFile = (req) => {
-        if (!req.file) {
-            throw new Utils_1.BadRequstExption("file not receved !");
-        }
-        return req.file;
-    };
-    _GetAuthorizedMultiFiles = (req) => {
-        if (!req.files) {
-            throw new Utils_1.BadRequstExption("file not receved !");
-        }
-        return req.files;
-    };
     // ---------------------------------------- routers ----------------------------------------\\
-    GetUserProfile = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        return (0, Utils_1.SuccessResponse)({ res, message: "good", data: user });
-    };
-    DeleteUserProfile = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
+    // public GetUserProfile = async (
+    //   req: Request,
+    //   res: Response,
+    // ): Promise<HUserDocument> => {
+    //   const user = this._GetAuthenticatedUser(req);
+    //   return user
+    // };
+    DeleteUserProfile = async (user) => {
         // step 1 : delete user
         const DeletedUser = await this._UserRepository.DeleteOne({ _id: user._id });
         let DeletedAssets;
@@ -63,21 +43,14 @@ class UserService {
         }
         console.log(DeletedAssets);
         // step 3 :return deleted user and assets
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "User Deleted successfly",
-            data: { DeletedUser, DeletedAssets },
-        });
+        return { DeletedUser, DeletedAssets };
     };
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ---------------------------------------- Upload Assets ----------------------------------------
-    AddUserPhoto = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        const file = this._GetAuthorizedFile(req);
+    AddUserPhoto = async ({ user, file, }) => {
         // -------------------------------------------------------
-        console.log(file);
         const Key = await this._AWS_S3.UploadFile({
             file,
             path: (0, Utils_1.s3PathKeyPrefix)({
@@ -87,25 +60,25 @@ class UserService {
                 id: user.id,
             }),
         });
-        console.log(file.mimetype, file.originalname);
+        console.log("file mimetype & originalname of AddUserPhoto endpint : ", file.mimetype, file.originalname);
         if (!Key)
             throw new Utils_1.BadRequstExption("Error while Uploading Asset to AWS Service !");
-        console.log(Key);
+        console.log("s3 file key :", Key);
         // -------------------------------------------------------
         const result = await this._UserRepository.updateOne({
             filter: { _id: user._id },
             update: { UserImage: Key },
         });
-        if (!result)
+        if (!result) {
+            if (Key) {
+                await this._AWS_S3.DeleteAsset({ Key });
+            }
             throw new Utils_1.BadRequstExption("error while setting user photo");
-        return (0, Utils_1.SuccessResponse)({ res, message: "done", data: result });
+        }
+        return { result, Key };
     };
     // ------------------------------------------------------------------------------------------------
-    AddUserLargeFile = async (req, res) => {
-        // 1. get the User
-        const user = this._GetAuthenticatedUser(req);
-        // 2. get the file
-        const file = this._GetAuthorizedFile(req);
+    AddUserLargeFile = async ({ user, file, }) => {
         // -------------------------------------------------------------
         // 3. send file by aws Service / UploadLargeFiles
         const Key = await this._AWS_S3.UploadLargeFiles({
@@ -120,7 +93,7 @@ class UserService {
             StorageAprotche: Utils_1.StorageAprotches.Disk,
         });
         if (!Key) {
-            throw new Utils_1.BadRequstExption("Key form aws is missing !");
+            throw new Utils_1.BadRequstExption("error while uploading assets to aws s3!");
         }
         // --------------------------------------------------------------
         // 4. send the Key form AWS to User CoverImage
@@ -129,14 +102,15 @@ class UserService {
             update: { $push: { CoverImage: Key } },
         });
         if (!result) {
+            if (Key) {
+                await this._AWS_S3.DeleteAsset({ Key });
+            }
             throw new Utils_1.BadRequstExption("Error while Updating User CoverImage!");
         }
-        return (0, Utils_1.SuccessResponse)({ res, message: "done", data: result });
+        return { result, Key };
     };
     // ------------------------------------------------------------------------------------------------
-    AddMultiFiles = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        const files = this._GetAuthorizedMultiFiles(req);
+    AddMultiFiles = async ({ user, files, }) => {
         // call the s3
         const Keys = await this._AWS_S3.UploadMultiFiles({
             files,
@@ -152,12 +126,15 @@ class UserService {
             update: { $push: { CoverImage: Keys } },
         });
         if (!result) {
+            if (Keys) {
+                await this._AWS_S3.DeleteAssets({ Keys });
+            }
             throw new Utils_1.BadRequstExption("Error while adding Keys form s3 to user");
         }
-        return (0, Utils_1.SuccessResponse)({ res, message: "done", data: result });
+        return { result, Keys };
     };
     // ------------------------------------------------------------------------------------------------
-    PresignedURL = async (req, res) => {
+    PresignedURL = async ({ user, ContentType, Originalname, }) => {
         /**
          * Generates a temporary Presigned URL for direct client-to-S3 uploads.
          *
@@ -168,10 +145,7 @@ class UserService {
          * 4. Record/reserve the S3 object Key in the user database record.
          * 5. Respond to client with `{ link, Key }` so client can PUT raw file to S3.
          */
-        // STEP 1: Get the authenticated user ID
-        const user = this._GetAuthenticatedUser(req);
         // STEP 2: Extract file metadata provided by client (no binary payload here)
-        const { ContentType, Originalname } = req.body;
         // STEP 3: Generate the time-limited presigned S3 PUT URL and object Key
         const payload = await this._AWS_S3.Upload_PresignedURL({
             AssetType: "Profile",
@@ -185,41 +159,26 @@ class UserService {
             filter: { _id: user._id },
             update: { $push: { CoverImage: payload.Key } },
         });
+        if (!result.modifiedCount) {
+            throw new Utils_1.BadRequstExption("error while Updating User , there is was not any update happend ");
+        }
         // STEP 5: Send response containing `{ link, Key }` to client for direct upload
-        return (0, Utils_1.SuccessResponse)({ res, data: { payload, result } });
+        return { payload, result };
     };
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ---------------------------------- Retrieve & Download Assets ----------------------------------\\
-    getUserAsset = async (req, res) => {
-        const { filename, download } = req.query;
-        // 1. get assets key form params : its come sapert apart so its must join them.
-        const { path, Key } = S3_RetrieveKeyFromParams(req);
-        // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
+    getUserAsset = async ({ Key, }) => {
         // 2. get the assets by Key , and distruct the body , the body is stream data
         const { Body, ContentType } = await this._AWS_S3.RetrieveAsset({ Key });
-        // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
-        // 3. set the headers
-        // - cors header
-        res.set("Cross-Origin-Resource-Policy", "cross-origin");
-        // - download header if true it will download the assets
-        if (download == "true") {
-            (0, node_console_1.log)("file downloading ...");
-            // - Content-type header
-            res.setHeader("Content-Type", ContentType || "application/octet-stream");
-            res.setHeader("Content-Disposition", `attachment; filename="${filename || path[path.length - 1]}"`);
-        }
-        // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/---------------------------
-        // 4. using S3_ReadStream method we created bass it the stream as ReadableStream and the distnation and will be Response and its automatic detect the res.pip and pass the stream when finish to it.
-        S3_ReadStream(Body, res);
-        // return SuccessResponse({ res, message: "done", data: result });
+        // */*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/-----------------------------
+        // return body (streaming data)
+        return { Body, ContentType };
     };
     // ------------------------------------------------------------------------------------------------
-    Retrieve_PresignedURL = async (req, res) => {
-        const { filename, download, ContentType } = req.query;
+    Retrieve_PresignedURL = async ({ filename, download, ContentType, path, Key, }) => {
         console.log(filename, download, ContentType);
         // note : ContentType is optional becz if its = undefined that will mean download it anyway even if download= false,
-        const { path, Key } = S3_RetrieveKeyFromParams(req);
         const Link = await this._AWS_S3.Retrieve_PresignedURL({
             Key,
             path,
@@ -227,16 +186,14 @@ class UserService {
             download,
             ContentType,
         });
-        return (0, Utils_1.SuccessResponse)({ res, message: "done", data: { Link } });
+        return { Link };
     };
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------- Delete Assets -------------------------------------------\\
-    Delete_Asset = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        const { Key } = req.body;
+    // ss
+    DeleteUserAsset = async ({ user, Key, }) => {
         const DeleteMark = await this._AWS_S3.DeleteAsset({ Key });
-        console.log({ DeleteMark });
         if (!DeleteMark) {
             throw new Utils_1.BadRequstExption("Error while Deleting Asset From AWS S3 User Bucket");
         }
@@ -244,25 +201,21 @@ class UserService {
             filter: { _id: user._id },
             update: { $pull: { CoverImage: Key } },
         });
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "done",
-            data: { result, DeleteMark },
-        });
+        return { result, DeleteMark };
     };
     // ------------------------------------------------------------------------------------------------
-    Delete_Assets = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        const { Keys } = req.body;
+    DeleteUserAssets = async ({ user, Keys, }) => {
         if (!Array.isArray(Keys)) {
-            throw new Utils_1.BadRequstExption("Keys must be an Array");
+            (0, node_console_1.log)(Keys);
+            throw new Utils_1.BadRequstExption(`Keys must be an Array : received ${Keys}`);
         }
-        const ArrayOfKeys = Keys.map((k) => {
-            return { Key: k };
-        });
-        console.log(ArrayOfKeys);
+        // const ArrayOfKeys: { Key: string }[] = Keys.map((k) => {
+        //   return { Key: k };
+        // });
+        console.log("delete asstes key :", Keys);
+        // now DeleteAssets \ DeleteAsset take string[] instaed of { Key: string }[]
         const Deleted = await this._AWS_S3.DeleteAssets({
-            Keys: ArrayOfKeys,
+            Keys,
         });
         console.log({ Deleted });
         Deleted.map((d) => {
@@ -274,40 +227,32 @@ class UserService {
             filter: { _id: user._id },
             update: { $pull: { CoverImage: { $in: Keys } } },
         });
-        return (0, Utils_1.SuccessResponse)({ res, message: "done", data: { result, Deleted } });
+        return { result, Deleted };
     };
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------
     // ---------------------------------------- notifications -----------------------------------------\\
-    GetFCM_Token = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
-        const { token } = req.body;
+    AssignFcmToken = async ({ user, token, }) => {
         const { id, FCM_Token } = user;
         if (FCM_Token?.includes(token)) {
             throw new Utils_1.ConflictExption("token already assigned !");
         }
-        const result = this._UserRepository.updateOne({
+        const result = await this._UserRepository.updateOne({
             filter: { _id: id },
             update: { $push: { FCM_Token: token } },
         });
         if (!result)
             throw new Utils_1.BadRequstExption("Error while pushing token");
-        return (0, Utils_1.SuccessResponse)({
-            res,
-            message: "done",
-            data: { token, result },
-        });
+        return { token, result };
     };
     // ------------------------------------------------------------------------------------------------
-    sendNotification = async (req, res) => {
-        const user = this._GetAuthenticatedUser(req);
+    SendNotification = async ({ user, data, }) => {
         const FCM_Token = user.FCM_Token || [];
         if (FCM_Token.length == 0)
             throw new Utils_1.BadRequstExption("User dose not have FCM Token : user notification token not found");
         // ===============================================================
-        const { data } = req.body;
         // ===============================================================
         if (!FCM_Token || !data) {
             throw new Utils_1.BadRequstExption("FCM_Token or data is undefined");
@@ -315,25 +260,15 @@ class UserService {
         // ===============================================================
         try {
             if (FCM_Token.length > 1) {
-                const result = await this._NotificationService.SendNotifications({
+                return await this._NotificationService.SendNotifications({
                     fcm_tokens: FCM_Token,
                     data,
                 });
-                return (0, Utils_1.SuccessResponse)({
-                    res,
-                    message: "notifications send successfly",
-                    data: result,
-                });
             }
             else if (FCM_Token[0]) {
-                const result = await this._NotificationService.SendNotification({
+                return await this._NotificationService.SendNotification({
                     fcm_token: FCM_Token[0],
                     data,
-                });
-                return (0, Utils_1.SuccessResponse)({
-                    res,
-                    message: "notification send successfly",
-                    data: result,
                 });
             }
         }
